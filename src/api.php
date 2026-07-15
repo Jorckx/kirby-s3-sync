@@ -13,7 +13,7 @@ return [
           return ['status' => 'error', 'message' => 'File not found'];
         }
 
-        $key    = option('s3.rootFolder') . '/' . $file->page()->id() . '/' . $file->filename();
+        $key    = option('s3.sitename') . '/' . $file->page()->id() . '/assets/' . $file->type() .  's/' . $file->filename();
         $client = s3Client();
 
         try {

@@ -15,7 +15,6 @@ require __DIR__ . '/../vendor/autoload.php'; // Composer autoloader first
 // 2. Load .env first so env() is available when config.php runs
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..');
 $dotenv->load();
-// 2.1 Define env() function if it doesn't exist (standalone CLI script)
 if (!function_exists('env')) {
   function env(string $key, mixed $default = null): mixed {
     $value = $_ENV[$key] ?? $_SERVER[$key] ?? getenv($key);
@@ -103,7 +102,7 @@ foreach ($pages as $page) {
       continue;
     }
 
-    $key = option('s3.site') . '/' . $file->page()->id() . '/' . $file->filename();
+    $key    = option('s3.sitename') . '/' . $file->page()->id() . '/assets/' . $file->type() .  's/' . $file->filename();
     echo "📤 " . ($dryRun ? '[would upload] ' : '') . "{$file->id()} → {$key}\n";
 
     if ($dryRun) {

@@ -15,7 +15,7 @@ function s3Client(): S3Client {
   ]);
 }
 
-Kirby::plugin('studio-dier/s3-bucket', [
+Kirby::plugin('joredierckx/kirby-s3-sync', [
   'blueprints' => [
     'fields/s3fields' => __DIR__ . '/blueprints/fields/s3fields.yml',
     // 'sections/s3upload' => __DIR__ . '/blueprints/sections/s3upload.yml'

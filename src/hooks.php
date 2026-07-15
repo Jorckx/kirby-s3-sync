@@ -7,7 +7,7 @@ return [
 
         // Upload the file to s3
         $client = s3Client();
-        $key    = option('s3.site') . '/' . $file->page()->id() . '/' . $file->filename();
+        $key    = option('s3.sitename') . '/' . $file->page()->id() . '/assets/' . $file->type() .  's/' . $file->filename();
 
         try {
             $result = $client->putObject([
@@ -32,11 +32,18 @@ return [
             $imageSize = getimagesize($file->root());
 
             // Update metadata before replacing local file
-            $file->update([
-                's3_key'    => $key,
-                's3_width'  => $imageSize ? $imageSize[0] : null,
-                's3_height' => $imageSize ? $imageSize[1] : null,
-            ]);
+            // this metadata will be shown as uneditable field-value's (s3fields)
+            $meta = ['s3_key' => $key]; // key
+            $dimConfig = option('s3.dimensions'); // dimensions
+            if ($dimConfig && $dimConfig['enabled']) {
+              $imageSize = @getimagesize($file->root());
+              if ($imageSize) {
+                $meta[$dimConfig['width_field']]  = $imageSize[0];
+                $meta[$dimConfig['height_field']] = $imageSize[1];
+              }
+            }
+
+            $file->update($meta);
 
             // NOW replace with placeholder
             $placeholder = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==');
