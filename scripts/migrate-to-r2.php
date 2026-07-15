@@ -170,14 +170,12 @@ foreach ($pages as $page) {
         throw new Exception('Verification failed after upload');
       }
 
-      // Store dimensions before replacing
-      $imageSize = @getimagesize($file->root());
-
-      // Update metadata
+      // After successful upload, fetch Cloudflare's image info
+      $jsonUrl = option('s3.cdn') . '/cdn-cgi/image/format=json/' . $expectedKey;
+      $response = @file_get_contents($jsonUrl);
       $file->update([
-        's3_key'    => $expectedKey,
-        's3_width'  => $imageSize ? $imageSize[0] : null,
-        's3_height' => $imageSize ? $imageSize[1] : null,
+        's3_key'  => $expectedKey,
+        's3_json' => $response ?: null,
       ]);
 
       // Replace with placeholder

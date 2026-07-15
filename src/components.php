@@ -6,7 +6,7 @@ use Kirby\Cms\App as Kirby;
 return [
   // Custom URL component to use CDN when available
   'file::url' => function (Kirby $kirby, $file) {
-      $key = $file->content()->get('s3_key')->value();
+    $key = $file->content()->get('s3_key')->value();
     if ($key) {
       return option('s3.cdn') . '/' . $key;
     }

@@ -10,10 +10,5 @@ return [
         'region'    => 'auto or <your-region>',  // R2 always uses 'auto'
         'endpoint'  => 'https://<your-account-id>.r2.cloudflarestorage.com',
         'cdn'       => '<custom-domain> or <dev-domain>', // your R2 public domain
-        'dimensions' => [
-          'enabled'        => true,
-          'width_field'    => 's3_width',   // name of the field to store width in
-          'height_field'   => 's3_height',  // name of the field to store height in
-        ],
     ],
 ];

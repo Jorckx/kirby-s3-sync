@@ -28,22 +28,14 @@ return [
                 throw new Exception('File not found in s3 after upload');
             }
 
-            // Read real dimensions before replacing
-            $imageSize = getimagesize($file->root());
-
-            // Update metadata before replacing local file
-            // this metadata will be shown as uneditable field-value's (s3fields)
-            $meta = ['s3_key' => $key]; // key
-            $dimConfig = option('s3.dimensions'); // dimensions
-            if ($dimConfig && $dimConfig['enabled']) {
-              $imageSize = @getimagesize($file->root());
-              if ($imageSize) {
-                $meta[$dimConfig['width_field']]  = $imageSize[0];
-                $meta[$dimConfig['height_field']] = $imageSize[1];
-              }
-            }
-
-            $file->update($meta);
+            // After successful upload, fetch Cloudflare's image info
+            sleep(1); // give Cloudflare a moment to process
+            $jsonUrl = option('s3.cdn') . '/cdn-cgi/image/format=json/' . $key;
+            $response = @file_get_contents($jsonUrl);
+            $file->update([
+              's3_key'  => $key,
+              's3_json' => $response ?: null,
+            ]);
 
             // NOW replace with placeholder
             $placeholder = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==');
@@ -55,18 +47,42 @@ return [
         }
     },
     // update s3 when a file is updated:
-    'file.update:before' => function ($file) {
-        if (!option('s3.active')) return;
+    // 'file.update:before' => function ($file) {
+    //     if (!option('s3.active')) return;
 
-        $key = $file->content()->get('s3_key')->value();
-        if ($key) {
-            $client = s3Client();
-            $client->copyObject([
-                'Bucket'     => option('s3.bucket'),
-                'CopySource' => option('s3.bucket') . '/' . $key,
-                'Key'        => $key,
-            ]);
-        }
+    //     $key = $file->content()->get('s3_key')->value();
+    //     if ($key) {
+    //         $client = s3Client();
+    //         $client->copyObject([
+    //             'Bucket'     => option('s3.bucket'),
+    //             'CopySource' => option('s3.bucket') . '/' . $key,
+    //             'Key'        => $key,
+    //         ]);
+    //     }
+    // },
+    'file.replace:after' => function ($file) {
+	      if (!option('s3.active')) return;
+	      $key = option('s3.sitename') . '/' . $file->page()->id() . '/assets/' . $file->type() . 's/' . $file->filename();
+	      $client = s3Client();
+	      try {
+	        $client->putObject([
+	          'Bucket'     => option('s3.bucket'),
+	          'Key'        => $key,
+	          'SourceFile' => $file->root(),
+	          'ACL'        => 'public-read',
+	        ]);
+	        sleep(1);
+	        $jsonUrl  = option('s3.cdn') . '/cdn-cgi/image/format=json/' . $key;
+	        $response = @file_get_contents($jsonUrl);
+	        $file->update([
+	          's3_key'  => $key,
+	          's3_json' => $response ?: null,
+	        ]);
+	        $placeholder = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==');
+	        file_put_contents($file->root(), $placeholder);
+	      } catch (Exception $e) {
+	        error_log('S3 replace failed: ' . $e->getMessage());
+	      }
     },
     // Clean up s3 when a file is deleted:
     'file.delete:before' => function ($file) {
