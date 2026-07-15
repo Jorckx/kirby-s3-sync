@@ -68,30 +68,77 @@ $client = new Aws\S3\S3Client([
 echo "Pages found: " . $kirby->site()->index()->count() . "\n";
 
 // 11. ask cli if user wants to iterate over pages and files or migrate speciphic pages
-//
 echo "Do you want to migrate all pages and files? (y/n): ";
 $migrateAll = readline();
 if ($migrateAll !== 'y') {
     echo "Enter the page ID to migrate: ";
     $pageId = readline();
-    $pages = $kirby->site()->index()->find($pageId);
-    if (!$pages) {
+	// single page-id
+    $page = $kirby->page($pageId);
+    if (!$page) {
         echo "Page not found.\n";
         exit;
     }
-    $pages = [$pages];
+    $pages = new \Kirby\Cms\Pages([$page]);
 } else {
+	// list all pages
     $pages = $kirby->site()->index();
 }
 
 // 12. Iterate over pages and files
 foreach ($pages as $page) {
   foreach ($page->files() as $file) {
+  	$expectedKey = option('s3.sitename') . '/' . $file->page()->id() . '/assets/' . $file->type() . 's/' . $file->filename();
 
-    // 12.1 Skip files already on R2
+    // 12.1 Check if file is already on R2
     if ($file->content()->get('s3_key')->isNotEmpty()) {
-      $skipped[] = $file->id();
-      echo "⏭  Skipping (already on R2): {$file->id()}\n";
+      $currentKey = $file->content()->get('s3_key')->value();
+
+      // Check if the path matches the expected structure
+      if ($currentKey === $expectedKey) {
+        $skipped[] = $file->id();
+        echo "⏭  Skipping (already on R2 with correct path): {$file->id()}\n";
+        continue;
+      }
+
+      // Path has changed — move the file in R2
+      echo "🔄 Moving (path changed): {$currentKey} → {$expectedKey}\n";
+
+      if (!$dryRun) {
+        try {
+          // Copy to new location
+          $client->copyObject([
+            'Bucket'     => option('s3.bucket'),
+            'CopySource' => option('s3.bucket') . '/' . $currentKey,
+            'Key'        => $expectedKey,
+            'ACL'        => 'public-read',
+          ]);
+
+          // Verify copy succeeded
+          if (!$client->doesObjectExist(option('s3.bucket'), $expectedKey)) {
+            throw new Exception('Verification failed after copy');
+          }
+
+          // Delete old location
+          $client->deleteObject([
+            'Bucket' => option('s3.bucket'),
+            'Key'    => $currentKey,
+          ]);
+
+          // Update metadata with new key
+          $file->update(['s3_key' => $expectedKey]);
+
+          $done[] = $file->id();
+          echo "   ✓ Moved\n";
+
+        } catch (Exception $e) {
+          $errors[] = ['file' => $file->id(), 'error' => $e->getMessage()];
+          echo "   ✗ Failed: {$e->getMessage()}\n";
+        }
+      } else {
+        $done[] = $file->id();
+      }
+
       continue;
     }
 
@@ -102,8 +149,7 @@ foreach ($pages as $page) {
       continue;
     }
 
-    $key    = option('s3.sitename') . '/' . $file->page()->id() . '/assets/' . $file->type() .  's/' . $file->filename();
-    echo "📤 " . ($dryRun ? '[would upload] ' : '') . "{$file->id()} → {$key}\n";
+    echo "📤 " . ($dryRun ? '[would upload] ' : '') . "{$file->id()} → {$expectedKey}\n";
 
     if ($dryRun) {
       $done[] = $file->id();
@@ -114,13 +160,13 @@ foreach ($pages as $page) {
       // Upload
       $client->putObject([
         'Bucket'     => option('s3.bucket'),
-        'Key'        => $key,
+        'Key'        => $expectedKey,
         'SourceFile' => $file->root(),
         'ACL'        => 'public-read',
       ]);
 
       // Verify
-      if (!$client->doesObjectExist(option('s3.bucket'), $key)) {
+      if (!$client->doesObjectExist(option('s3.bucket'), $expectedKey)) {
         throw new Exception('Verification failed after upload');
       }
 
@@ -129,7 +175,7 @@ foreach ($pages as $page) {
 
       // Update metadata
       $file->update([
-        's3_key'    => $key,
+        's3_key'    => $expectedKey,
         's3_width'  => $imageSize ? $imageSize[0] : null,
         's3_height' => $imageSize ? $imageSize[1] : null,
       ]);
