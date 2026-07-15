@@ -1,0 +1,6 @@
+# OS files
+.DS_Store
+
+# Vendor files
+/node_modules
+/vendor

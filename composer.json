@@ -1,0 +1,22 @@
+{
+    "name": "jorckx/kirby-r2-sync",
+    "description": "Syncs Kirby files to Cloudflare R2. Can be modified to work with any S3-compatible bucket.",
+    "version": "1.0.0",
+   	"homepage": "https://studiodier.com",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Studio Jore Dierckx",
+            "email": "contact@studiodier.com"
+        }
+    ],
+    "support": {
+        "email": "contact@studiodier.com",
+        "issues": "https://github.com/jorckx/kirby-r2-sync/issues",
+        "source": "https://github.com/jorckx/kirby-r2-sync"
+    },
+    "scripts": {
+        "r2-sync --dry-run": "php scripts/migrate-to-r2.php --dry-run",
+        "r2-sync": "php scripts/migrate-to-r2.php"
+    }
+}
