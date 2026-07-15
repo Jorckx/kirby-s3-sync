@@ -1,19 +1,11 @@
 type: group
 fields:
   s3_key:
-    label: CDN key
     type: text
     width: 1/1
     disabled: true  # read-only, set automatically
-  s3_width:
-    label: CDN width
-    type: text
+  s3_json:
+    label: CDN json
+    type: textarea
     width: 1/1
-    hidden: true
-    disabled: true  # read-only, set automatically
-  s3_height:
-    label: CDN height
-    type: text
-    width: 1/1
-    hidden: true
     disabled: true  # read-only, set automatically
