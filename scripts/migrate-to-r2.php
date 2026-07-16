@@ -159,21 +159,25 @@ foreach ($pages as $page) {
             throw new Exception('Verification failed after copy');
           }
 
-          // Delete old location
-          $client->deleteObject([
-            'Bucket' => option('s3.bucket'),
-            'Key'    => $currentKey,
-          ]);
-
-          // Update metadata with new key
+          // Update metadata FIRST — this is the source of truth we care most about protecting
           $file->update(['s3_key' => $expectedKey]);
+
+          // Delete old location — if this fails, we just leak a stale copy in R2 (harmless, cleanable later)
+          try {
+            $client->deleteObject([
+              'Bucket' => option('s3.bucket'),
+              'Key'    => $currentKey,
+            ]);
+          } catch (Exception $e) {
+            echo "   ⚠ Moved, but failed to delete old key ({$currentKey}): {$e->getMessage()}\n";
+          }
 
           $done[] = $file->id();
           echo "   ✓ Moved\n";
 
         } catch (Exception $e) {
           $errors[] = ['file' => $file->id(), 'error' => $e->getMessage()];
-          echo "   ✗ Failed: {$e->getMessage()}\n";
+          echo "   ✗ Failed: {$e->getMessage()} / try again\n";
         }
       } else {
         $done[] = $file->id();
@@ -227,7 +231,7 @@ foreach ($pages as $page) {
 
     } catch (Exception $e) {
       $errors[] = ['file' => $file->id(), 'error' => $e->getMessage()];
-      echo "   ✗ Failed: {$e->getMessage()}\n";
+      echo "   ✗ Failed: {$e->getMessage()} / try again \n";
       // Original file untouched, migration continues
     }
   }
