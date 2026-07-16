@@ -1,16 +1,14 @@
 <?php
-// I. HOW TO RUN
-// Run with: php site/scripts/migrate-to-r2.php
-// Dry run:  php site/scripts/migrate-to-r2.php --dry-run
+// I. LOCATION
+// place this script in the `scripts` folder at the root of your Kirby installation
+//
+// II. HOW TO RUN
+// Run with: php scripts/migrate-to-r2.php
+// Dry run:  php scripts/migrate-to-r2.php --dry-run
 
-// II. PREPARE THE ENVIRONMENT
-// In a standalone CLI script, you're starting from scratch.
-// bootstrap.php sets up Kirby's core, but you also need Composer's autoloader
-// to make all classes (including Kirby\Cms\App) findable. the env() function is also needed, so we load it first.
-
+// ——————————————————————————————————————————————————————————
 // 1. Load Composer's autoloader first
 require __DIR__ . '/../vendor/autoload.php'; // Composer autoloader first
-
 
 // 2. Load .env first so env() is available when config.php runs
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..');
@@ -28,7 +26,6 @@ require __DIR__ . '/../vendor/getkirby/cms/bootstrap.php';
 // 4. Create Kirby's App instance
 $kirby = new Kirby\Cms\App([
   'roots' => [
-    // Explicitly tell Kirby where to find the correct folders
     'index' => __DIR__ . '/..',
     'content' => __DIR__ . '/../storage/content',
   ],
@@ -126,8 +123,12 @@ if ($confirm !== 'y') {
 echo "\n";
 
 // 14. Iterate over pages and files
+$current = 0;
 foreach ($pages as $page) {
   foreach ($page->files() as $file) {
+    $current++;
+    echo "[{$current}/{$fileCount}] ";
+
   	$expectedKey = $siteName . '/' . $file->page()->id() . '/assets/' . $file->type() . 's/' . $file->filename();
 
     // 14.1 Check if file is already on R2
@@ -214,12 +215,18 @@ foreach ($pages as $page) {
         throw new Exception('Verification failed after upload');
       }
 
-      // After successful upload, fetch Cloudflare's image info
-      $jsonUrl = option('s3.cdn') . '/cdn-cgi/image/format=json/' . $expectedKey;
-      $response = @file_get_contents($jsonUrl);
+      // After successful upload, fetch provider-specific image info if a CDN endpoint is configured
+      // (this is currently only meaningful for Cloudflare/R2's image-info endpoint)
+      $s3Json = null;
+      if ($cdn = option('s3.cdn')) {
+        $jsonUrl = $cdn . '/cdn-cgi/image/format=json/' . $expectedKey;
+        $response = @file_get_contents($jsonUrl);
+        $s3Json = $response ?: null;
+      }
+
       $file->update([
         's3_key'  => $expectedKey,
-        's3_json' => $response ?: null,
+        's3_json' => $s3Json,
       ]);
 
       // Replace with placeholder

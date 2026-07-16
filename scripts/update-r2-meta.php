@@ -1,8 +1,12 @@
 <?php
-// I. HOW TO RUN
-// Run with: php site/scripts/update-r2-meta.php
-// Dry run:  php site/scripts/update-r2-meta.php --dry-run
+// I. LOCATION
+// place this script in the `scripts` folder at the root of your Kirby installation
+//
+// II. HOW TO RUN
+// Run with: php scripts/update-r2-meta.php
+// Dry run:  php scripts/update-r2-meta.php --dry-run
 
+// ——————————————————————————————————————————————————————————
 // 1. Load Composer's autoloader first
 require __DIR__ . '/../vendor/autoload.php';
 
