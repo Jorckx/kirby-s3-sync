@@ -53,7 +53,21 @@ echo $dryRun ? "🔍 DRY RUN — nothing will be changed\n\n" : "🚀 Starting m
 $s3Key    = $_ENV['S3_KEY'] ?? getenv('S3_KEY');
 $s3Secret = $_ENV['S3_SECRET'] ?? getenv('S3_SECRET');
 
-// 9. Create S3 client
+// 9 Required config — must all be set before we touch R2
+$required = ['s3.sitename', 's3.bucket', 's3.region', 's3.endpoint'];
+$missing  = [];
+foreach ($required as $key) {
+  if (empty(option($key))) {
+    $missing[] = $key;
+  }
+}
+if ($missing) {
+  echo "✗ Missing required config: " . implode(', ', $missing) . "\n";
+  exit(1);
+}
+$siteName = option('s3.sitename');
+
+// 10. Create S3 client
 $client = new Aws\S3\S3Client([
   'version'     => 'latest',
   'region'      => option('s3.region'),
@@ -64,10 +78,12 @@ $client = new Aws\S3\S3Client([
   ],
 ]);
 
-// 10. Output the number of pages to be migrated
+
+
+// 11. Output the number of pages to be migrated
 echo "Pages found: " . $kirby->site()->index()->count() . "\n";
 
-// 11. ask cli if user wants to iterate over pages and files or migrate speciphic pages
+// 12. ask cli if user wants to iterate over pages and files or migrate speciphic pages
 echo "Do you want to migrate all pages and files? (y/n): ";
 $migrateAll = readline();
 if ($migrateAll !== 'y') {
@@ -85,12 +101,36 @@ if ($migrateAll !== 'y') {
     $pages = $kirby->site()->index();
 }
 
-// 12. Iterate over pages and files
+// 13 Show what's about to happen and require explicit confirmation
+$fileCount = 0;
+foreach ($pages as $p) {
+    $fileCount += count($p->files());
+}
+echo "\n--- About to migrate ---\n";
+if ($migrateAll === 'y') {
+    echo "Scope: ALL pages\n";
+} else {
+    echo "Scope: single page → {$page->id()}\n";
+}
+echo "Pages: " . count($pages) . "\n";
+echo "Files: {$fileCount}\n";
+echo "Mode:  " . ($dryRun ? "DRY RUN (no changes)" : "LIVE (will upload/move/delete in R2)") . "\n";
+echo "expected R2 key: \n" . $siteName . '/<page-id>/assets/<file-type>/<filename>' . "\n";
+
+echo "\nProceed? (y/n): ";
+$confirm = readline();
+if ($confirm !== 'y') {
+    echo "Aborted.\n";
+    exit;
+}
+echo "\n";
+
+// 14. Iterate over pages and files
 foreach ($pages as $page) {
   foreach ($page->files() as $file) {
-  	$expectedKey = option('s3.sitename') . '/' . $file->page()->id() . '/assets/' . $file->type() . 's/' . $file->filename();
+  	$expectedKey = $siteName . '/' . $file->page()->id() . '/assets/' . $file->type() . 's/' . $file->filename();
 
-    // 12.1 Check if file is already on R2
+    // 14.1 Check if file is already on R2
     if ($file->content()->get('s3_key')->isNotEmpty()) {
       $currentKey = $file->content()->get('s3_key')->value();
 
@@ -142,7 +182,7 @@ foreach ($pages as $page) {
       continue;
     }
 
-    // 12.2 Skip placeholder files (1x1px = 68 bytes)
+    // 14.2 Skip placeholder files (1x1px = 68 bytes)
     if (filesize($file->root()) < 100) {
       $skipped[] = $file->id();
       echo "⏭  Skipping (looks like placeholder): {$file->id()}\n";
@@ -193,11 +233,13 @@ foreach ($pages as $page) {
   }
 }
 
+// 15. Output summary
 echo "\n--- Summary ---\n";
 echo "✓ Migrated: " . count($done)    . "\n";
 echo "⏭  Skipped:  " . count($skipped) . "\n";
 echo "✗ Errors:   " . count($errors)  . "\n";
 
+// 16. Output failed files (if any)
 if ($errors) {
   echo "\nFailed files:\n";
   foreach ($errors as $e) {
