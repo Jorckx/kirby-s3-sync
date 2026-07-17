@@ -1,22 +1,36 @@
 {
     "name": "joredierckx/kirby-s3-sync",
-    "description": "Syncs Kirby files to Cloudflare R2 (s3 Compatible).",
-    "version": "1.0.1",
-   	"homepage": "https://studiodier.com",
-    "license": "MIT",
+    "description": "🔄 Syncs Kirby files to Cloudflare R2 (s3 Compatible).",
     "type": "kirby-plugin",
+    "version": "1.0.0",
+    "keywords": [
+      "content",
+      "assets",
+      "migration",
+      "kirby",
+      "cloudflare",
+      "s3",
+      "r2"
+    ],
+    "license": "MIT",
+   	"homepage": "https://studiodier.com",
     "authors": [
         {
             "name": "Jore Dierckx",
             "email": "contact@studiodier.com"
         }
     ],
+    "autoload": {
+        "psr-4": {"Joredierckx\\KirbyS3Sync\\": "src/"}
+    },
     "support": {
         "email": "contact@studiodier.com",
         "issues": "https://github.com/jorckx/kirby-s3-sync/issues",
         "source": "https://github.com/jorckx/kirby-s3-sync"
     },
     "require": {
-        "getkirby/composer-installer": "^1.1"
+        "getkirby/composer-installer": "^1.1",
+        "aws/aws-sdk-php": "^3.0",
+        "vlucas/phpdotenv": "^5.0"
     }
 }
