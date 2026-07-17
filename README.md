@@ -150,13 +150,13 @@ POST /api/s3-upload/{pageId}/{filename}
 
 Two standalone scripts are included in `scripts/` for one-off and maintenance work outside the normal Panel flow. Both support `--dry-run` and prompt for confirmation before making any changes.
 
-### `migrate-to-r2.php`
+### `migrate-to-s3.php`
 
 Bulk-migrates existing local files to your bucket — intended for the initial move to R2, or for re-syncing after restoring a backup.
 
 ```bash
-php scripts/migrate-to-r2.php --dry-run
-php scripts/migrate-to-r2.php
+php scripts/migrate-to-s3.php --dry-run
+php scripts/migrate-to-s3.php
 ```
 
 - Prompts to migrate all pages or a single page by ID
@@ -164,13 +164,13 @@ php scripts/migrate-to-r2.php
 - Skips files already correctly placed; moves files whose expected key has changed; uploads new files
 - Safe to re-run — already-migrated files are detected and skipped, failed files are retried automatically on the next run
 
-### `update-r2-meta.php`
+### `update-s3-meta.php`
 
 Backfills `s3_width` / `s3_height` (and `s3_json`) on files that were migrated before those fields existed, or after a plugin upgrade that adds new metadata fields.
 
 ```bash
-php scripts/update-r2-meta.php --dry-run
-php scripts/update-r2-meta.php
+php scripts/update-s3-meta.php --dry-run
+php scripts/update-s3-meta.php
 ```
 
 - Reuses a file's already-stored `s3_json` when present, only hitting the CDN if it's missing
