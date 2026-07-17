@@ -29,20 +29,27 @@ Built and maintained by [Studio Dier](https://studiodier.com).
 
 - Kirby 3.6+ (for automatic Composer autoloading of plugins)
 - PHP 8.1+
-- `aws/aws-sdk-php` and `vlucas/phpdotenv`, available via your site's root `composer.json`
 - An S3-compatible bucket (Cloudflare R2, DigitalOcean Spaces, AWS S3, etc.)
 
 ---
 
 ## Installation
 
-Place the plugin in `site/plugins/kirby-s3-sync`, either as a git submodule, a manual copy, or via Composer if you publish it to Packagist:
+### Via Composer (recommended)
 
-```
-site/plugins/kirby-s3-sync/
+```bash
+composer require joredierckx/kirby-s3-sync
 ```
 
-Kirby automatically autoloads the plugin's `composer.json` PSR-4 mapping — no separate `composer install` step is needed for the plugin itself, as long as your site's root Composer setup already includes `aws/aws-sdk-php`.
+Composer will automatically install `aws/aws-sdk-php` and `vlucas/phpdotenv` as part of this plugin's own dependencies — no extra steps needed.
+
+### Manual installation
+
+Clone or copy the plugin into `site/plugins/kirby-s3-sync`. Since Composer won't see this plugin's dependencies in a manual install, add them to your site's own root `composer.json` yourself:
+
+```bash
+composer require aws/aws-sdk-php vlucas/phpdotenv
+```
 
 ---
 
