@@ -1,4 +1,7 @@
 <?php
+
+use function ast\parse_code;
+
 // I. LOCATION
 // place this script in the `scripts` folder at the root of your Kirby installation
 //
@@ -218,15 +221,25 @@ foreach ($pages as $page) {
       // After successful upload, fetch provider-specific image info if a CDN endpoint is configured
       // (this is currently only meaningful for Cloudflare/R2's image-info endpoint)
       $s3Json = null;
+      $s3Width  = null;
+      $s3Height = null;
       if ($cdn = option('s3.cdn')) {
         $jsonUrl = $cdn . '/cdn-cgi/image/format=json/' . $expectedKey;
         $response = @file_get_contents($jsonUrl);
-        $s3Json = $response ?: null;
+        if ($response) {
+          $s3Json = $response;
+          $decoded = json_decode($response, true);
+          if (json_last_error() === JSON_ERROR_NONE) {
+            $s3Width  = $decoded['width']  ?? null;
+            $s3Height = $decoded['height'] ?? null;
+          }
+        }
       }
-
       $file->update([
-        's3_key'  => $expectedKey,
-        's3_json' => $s3Json,
+        's3_key'    => $expectedKey,
+        's3_json'   => $s3Json,
+        's3_width'  => $s3Width,
+        's3_height' => $s3Height,
       ]);
 
       // Replace with placeholder

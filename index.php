@@ -1,26 +1,15 @@
 <?php
 
-use Aws\S3\S3Client;
 use Kirby\Cms\App as Kirby;
 
-function s3Client(): S3Client {
-  return new S3Client([
-    'version'     => 'latest',
-    'region'      => option('s3.region'),
-    'endpoint'    => option('s3.endpoint'),
-    'credentials' => [
-      'key'    => option('s3.key'),
-      'secret' => option('s3.secret'),
-    ],
-  ]);
-}
-
 Kirby::plugin('joredierckx/kirby-s3-sync', [
-  'blueprints' => [
-    'fields/s3fields' => __DIR__ . '/blueprints/fields/s3fields.yml',
-    // 'sections/s3upload' => __DIR__ . '/blueprints/sections/s3upload.yml'
-  ],
-  'hooks' => require __DIR__ . '/src/hooks.php',
-  'components' => require __DIR__ . '/src/components.php',
-  'api' => require __DIR__ . '/src/api.php',
+    'options' => [
+        'active' => false,
+    ],
+    'blueprints' => [
+      'fields/s3meta' => __DIR__ . '/blueprints/fields/s3meta.yml',
+    ],
+    'hooks' => require __DIR__ . '/src/hooks.php',
+    'api'   => require __DIR__ . '/src/Api.php',
+    'components' => require __DIR__ . '/src/Components.php',
 ]);
