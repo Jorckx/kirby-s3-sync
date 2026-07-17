@@ -9,7 +9,7 @@ Kirby::plugin('joredierckx/kirby-s3-sync', [
     'blueprints' => [
       'fields/s3meta' => __DIR__ . '/blueprints/fields/s3meta.yml',
     ],
-    'hooks' => require __DIR__ . '/src/hooks.php',
+    'hooks' => require __DIR__ . '/src/Hooks.php',
     'api'   => require __DIR__ . '/src/Api.php',
     'components' => require __DIR__ . '/src/Components.php',
 ]);
