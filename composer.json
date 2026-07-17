@@ -1,5 +1,5 @@
 {
-    "name": "joreDierckx/kirby-s3-sync",
+    "name": "joredierckx/kirby-s3-sync",
     "description": "Syncs Kirby files to Cloudflare R2 (s3 Compatible).",
     "version": "1.0.0",
    	"homepage": "https://studiodier.com",
