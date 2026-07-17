@@ -4,6 +4,7 @@
     "version": "1.0.0",
    	"homepage": "https://studiodier.com",
     "license": "MIT",
+    "type": "kirby-plugin",
     "authors": [
         {
             "name": "Jore Dierckx",
