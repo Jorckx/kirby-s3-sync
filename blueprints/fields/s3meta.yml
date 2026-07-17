@@ -3,12 +3,12 @@ fields:
   s3_key:
     label: S3 Key
     type: text
-    readonly: true
+    disabled: true
   s3_width:
     label: Width
     type: number
-    readonly: true
+    disabled: true
   s3_height:
     label: Height
     type: number
-    readonly: true
+    disabled: true
