@@ -13,10 +13,10 @@ return [
         }
     },
 
-    'file.replace:after' => function ($file) {
+    'file.replace:after' => function ($newFile) {
         if (!option('s3.active')) return;
         try {
-            Uploader::uploadAndReplace($file);
+            Uploader::uploadAndReplace($newFile);
         } catch (Exception $e) {
             error_log('S3 replace failed: ' . $e->getMessage());
         }
