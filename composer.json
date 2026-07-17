@@ -10,9 +10,6 @@
             "email": "contact@studiodier.com"
         }
     ],
-    "autoload": {
-        "psr-4": {"Joredierckx\\KirbyS3Sync\\": "src/"}
-    },
     "support": {
         "email": "contact@studiodier.com",
         "issues": "https://github.com/jorckx/kirby-s3-sync/issues",
