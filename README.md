@@ -40,17 +40,6 @@ Built and maintained by [Studio Dier](https://studiodier.com).
 ```bash
 composer require joredierckx/kirby-s3-sync
 ```
-
-Composer will automatically install `aws/aws-sdk-php` and `vlucas/phpdotenv` as part of this plugin's own dependencies — no extra steps needed.
-
-### Manual installation
-
-Clone or copy the plugin into `site/plugins/kirby-s3-sync`. Since Composer won't see this plugin's dependencies in a manual install, add them to your site's own root `composer.json` yourself:
-
-```bash
-composer require aws/aws-sdk-php vlucas/phpdotenv
-```
-
 ---
 
 ## Configuration
