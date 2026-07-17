@@ -14,5 +14,8 @@
         "email": "contact@studiodier.com",
         "issues": "https://github.com/jorckx/kirby-s3-sync/issues",
         "source": "https://github.com/jorckx/kirby-s3-sync"
+    },
+    "require": {
+        "getkirby/composer-installer": "^1.1"
     }
 }
