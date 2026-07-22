@@ -1,13 +1,16 @@
-# Kirby S3 Sync
 
->[!WARNING]
->v1.0.0 is an early release. It already includes the necessary safeguards (ref.: safety notes) but use at your own risk. Always make backups before using this plugin.
+![Kirby ThumbHash Banner](./.github/gh-banner.jpg)
+
+<h1 align="center">Kirby S3 Sync</h1>
+
+>[!NOTE]
+>This is an early-stage release. Although core [safeguards](#safety-notes) are in place, use it at your own risk. We strongly recommend creating backups before use.
 
 Sync Kirby CMS files to Cloudflare R2 (or any S3-compatible storage) automatically, offloading local disk usage and serving assets through a CDN.
 
 Files uploaded through the Panel are pushed to your bucket, verified, and then replaced locally with a tiny placeholder — so your Kirby installation stays lightweight while the real files live on R2. `file::url`, `file::version`, and `file::dimensions` are transparently rerouted to the CDN, so templates and the Panel keep working without any changes to your existing code.
 
-Built and maintained by [Studio Dier](https://studiodier.com).
+Built and maintained by [Jore Dierckx](https://studiodier.com).
 
 ---
 
@@ -189,6 +192,16 @@ This plugin works with any S3-compatible endpoint. Cloudflare-specific behavior 
 - Nothing is ever deleted locally until the corresponding upload is verified in the bucket.
 - Nothing is ever deleted from the bucket without first being archived under `_archive/`.
 - All hooks and the API route respect `s3.active` — set it to `false` to fully disable the plugin's behavior without uninstalling it.
+
+---
+
+## Support
+
+If this project saves you time, consider supporting it:
+
+<a href="https://www.buymeacoffee.com/joredierckx" target="_blank">
+  <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="41" width="174">
+</a>
 
 ---
 
