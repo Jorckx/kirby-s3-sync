@@ -6,7 +6,9 @@
 >[!NOTE]
 >This is an early-stage release. Although core [safeguards](#safety-notes) are in place, use it at your own risk. We strongly recommend creating backups before use.
 
-Sync Kirby CMS files to Cloudflare R2 (or any S3-compatible storage) automatically, offloading local disk usage and serving assets through a CDN.
+Sync Kirby CMS files to S3 bucket/storage automatically, offloading local/server disk usage and serving assets through a CDN.
+
+This plugin was originally inteded to work with Cloudflare's r2 storage, but since this is s3 compatible it works with all any S3-compatible storage.
 
 Files uploaded through the Panel are pushed to your bucket, verified, and then replaced locally with a tiny placeholder — so your Kirby installation stays lightweight while the real files live on R2. `file::url`, `file::version`, and `file::dimensions` are transparently rerouted to the CDN, so templates and the Panel keep working without any changes to your existing code.
 
