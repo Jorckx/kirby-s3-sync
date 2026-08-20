@@ -31,7 +31,7 @@ class Uploader
 
         // s3_json is bonus metadata only (format, original file size, etc.)
         // — never required for width/height, which are already set above
-        $s3Json = static::fetchCdnJson($key);
+       	$s3Json = option('s3.json', false) ? static::fetchCdnJson($key) : null;
 
         $file->update([
             's3_key'    => $key,
