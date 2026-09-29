@@ -14,9 +14,11 @@ class DeferSync
         ignore_user_abort(true);
 
         register_shutdown_function(function () use ($work) {
-            if (function_exists('fastcgi_finish_request')) {
+            $afterResponse = function_exists('fastcgi_finish_request');
+            if ($afterResponse) {
                 fastcgi_finish_request();
             }
+            Log::info('deferred work start', ['after_response' => $afterResponse]);
             $work();
         });
     }

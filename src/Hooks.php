@@ -4,92 +4,81 @@ use Joredierckx\KirbyS3Sync\Uploader;
 use Joredierckx\KirbyS3Sync\SyncJson;
 use Joredierckx\KirbyS3Sync\DeferSync;
 use Joredierckx\KirbyS3Sync\Client;
+use Joredierckx\KirbyS3Sync\Env;
+use Joredierckx\KirbyS3Sync\Log;
 
+// Shared by file.create:after and file.replace:after
+$sync = function ($file, string $event): void {
+    if (!option('s3.active')) return;
+
+    // Localhost without s3.localhost: only log what would happen
+    if (Env::bypass()) {
+        Uploader::dryRun($event, $file);
+        return;
+    }
+
+    Log::info($event . ' start', Log::file($file));
+
+    // 1. Runs right away: upload, set width/height, write the placeholder, unpublish media
+    try {
+        Uploader::uploadAndReplace($file);
+    } catch (\Throwable $t) {
+        Log::error($event . ' upload failed', Log::file($file, ['error' => $t->getMessage()]));
+        return; // no upload means no CDN JSON to fetch
+    }
+
+    // 2. Runs after the response is sent: fetch the CDN JSON (sleep + HTTP request)
+    DeferSync::deferSync(function () use ($file, $event) {
+        try {
+            SyncJson::syncCdnJson($file);
+        } catch (\Throwable $t) {
+            Log::error($event . ' json fetch failed', Log::file($file, ['error' => $t->getMessage()]));
+        }
+    });
+};
 
 // Register the hooks
 return [
-    'file.create:after' => function ($file) {
-        if (!option('s3.active')) return;
-        // 1. Runs right away: upload, set width/height, write the placeholder, unpublish media
-        try {
-            Uploader::uploadAndReplace($file);
-        } catch (\Throwable $t) {
-            error_log(sprintf(
-                'S3 upload failed for %s (page: %s): %s',
-                $file->filename(),
-                $file->page() ? $file->page()->id() : 'unknown',
-                $t->getMessage()
-            ));
-            return; // no upload means no CDN JSON to fetch
-        }
-
-        // 2. Runs after the response is sent: fetch the CDN JSON (sleep + HTTP request)
-        DeferSync::deferSync(function () use ($file) {
-            try {
-                SyncJson::syncCdnJson($file);
-            } catch (\Throwable $t) {
-                error_log(sprintf(
-                    'S3 json fetch failed for %s (page: %s): %s',
-                    $file->filename(),
-                    $file->page() ? $file->page()->id() : 'unknown',
-                    $t->getMessage()
-                ));
-            }
-        });
+    'file.create:after' => function ($file) use ($sync) {
+        $sync($file, 'create:after');
     },
 
-    'file.replace:after' => function ($newFile) {
-        if (!option('s3.active')) return;
-        // 1. Runs right away: upload, set width/height, write the placeholder, unpublish media
-        try {
-            Uploader::uploadAndReplace($newFile);
-        } catch (\Throwable $t) {
-            error_log(sprintf(
-            	'S3 replace failed for %s (page: %s): %s',
-             	$newFile->filename(),
-              	$newFile->page() ? $newFile->page()->id() : 'unknown',
-             	$t->getMessage()
-            ));
-            return; // no upload means no CDN JSON to fetch
-        }
-        // 2. Runs after the response is sent: fetch the CDN JSON (sleep + HTTP request)
-        DeferSync::deferSync(function () use ($newFile){
-            try {
-                SyncJson::syncCdnJson($newFile);
-            } catch (\Throwable $t) {
-                error_log(sprintf(
-                    'S3 json fetch failed for %s (page: %s): %s',
-                    $newFile->filename(),
-                    $newFile->page() ? $newFile->page()->id() : 'unknown',
-                    $t->getMessage()
-                ));
-            }
-        });
+    'file.replace:after' => function ($newFile) use ($sync) {
+        $sync($newFile, 'replace:after');
     },
 
     'file.delete:before' => function ($file) {
         if (!option('s3.active')) return;
         $key = $file->content()->get('s3_key')->value();
+
+        if (!$key) {
+            Log::info('delete:before no s3_key, nothing to delete', Log::file($file));
+            return;
+        }
+
+        if (Env::bypass()) {
+            Log::info('delete:before dry run', Log::file($file, [
+                'key'     => $key,
+                'archive' => '_archive/' . $key,
+                'would'   => ['copyObject to _archive', 'deleteObject'],
+            ]));
+            return;
+        }
+
         try {
-	        if ($key) {
-	            $client = Client::make();
-	            $client->copyObject([
-	                'Bucket'     => option('s3.bucket'),
-	                'CopySource' => option('s3.bucket') . '/' . $key,
-	                'Key'        => '_archive/' . $key,
-	            ]);
-	            $client->deleteObject([
-	                'Bucket' => option('s3.bucket'),
-	                'Key'    => $key,
-	            ]);
-	        }
+            $client = Client::make();
+            $client->copyObject([
+                'Bucket'     => option('s3.bucket'),
+                'CopySource' => option('s3.bucket') . '/' . $key,
+                'Key'        => '_archive/' . $key,
+            ]);
+            $client->deleteObject([
+                'Bucket' => option('s3.bucket'),
+                'Key'    => $key,
+            ]);
+            Log::info('delete:before archived + deleted', Log::file($file, ['key' => $key]));
         } catch (\Throwable $t) {
-            error_log(sprintf(
-            	'S3 delete failed for %s (page: %s): %s',
-             	$file->filename(),
-              	$file->page() ? $file->page()->id() : 'unknown',
-             	$t->getMessage()
-            ));
+            Log::error('delete:before delete failed', Log::file($file, ['key' => $key, 'error' => $t->getMessage()]));
         }
     },
 ];
