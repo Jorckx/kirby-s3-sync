@@ -4,7 +4,7 @@
 <h1 align="center">Kirby S3 Sync</h1>
 
 >[!NOTE]
->This is an early-stage release. Although core [safeguards](#safety-notes) are in place, use it at your own risk. We strongly recommend creating backups before use. Since version 1.0.7 it supports [local development](#local-development), you can use it to test before deploying to production.
+>This is an early-stage release. Although core [safeguards](#safety-notes) are in place, use it at your own risk. We strongly recommend creating backups before use. Since version 1.0.8 it supports [local development](#local-development), you can use it to test before deploying to production.
 
 Sync Kirby CMS files to S3 bucket/storage automatically, offloading local/server disk usage and serving assets through a CDN.
 
