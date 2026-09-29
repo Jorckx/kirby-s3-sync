@@ -4,7 +4,7 @@
 <h1 align="center">Kirby S3 Sync</h1>
 
 >[!NOTE]
->This is an early-stage release. Although core [safeguards](#safety-notes) are in place, use it at your own risk. We strongly recommend creating backups before use.
+>This is an early-stage release. Although core [safeguards](#safety-notes) are in place, use it at your own risk. We strongly recommend creating backups before use. Since version 1.0.7 it supports [local development](#local-development), you can use it to test before deploying to production.
 
 Sync Kirby CMS files to S3 bucket/storage automatically, offloading local/server disk usage and serving assets through a CDN.
 
@@ -92,7 +92,7 @@ Kirby supports environment-specific config files (e.g. `config/config.local.php`
 
 ### Local development
 
-With `s3.active` on and `s3.localhost` off, uploads, replaces and deletes on a local host are only logged to `site/logs/s3-sync.log`:
+With `s3.active` set to `true` (default) and `s3.localhost` set to `false` (default), uploads, replaces and deletes on a local host are only logged to `site/logs/s3-sync.log`:
 
 ```
 [2026-09-29 17:10:02] INFO create:after dry run {"file":"foo.jpg","page":"projects/x","bucket":"…","key":"…","s3_width":2400,"s3_height":1600,"cdn_url":"…","would":[…]}
