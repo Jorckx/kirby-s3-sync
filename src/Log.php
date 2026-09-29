@@ -1,6 +1,7 @@
 <?php
 
 namespace Joredierckx\KirbyS3Sync;
+use Joredierckx\KirbyS3Sync\Env;
 
 use Kirby\Filesystem\F;
 
