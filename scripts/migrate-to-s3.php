@@ -245,6 +245,8 @@ foreach ($pages as $page) {
       // Replace with placeholder
       $placeholder = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==');
       file_put_contents($file->root(), $placeholder);
+      // Unpublish media copies and thumbnails
+      $file->unpublish(true);
 
       $done[] = $file->id();
       echo "   ✓ Done\n";

@@ -100,6 +100,7 @@ Kirby supports environment-specific config files (e.g. `config/config.local.php`
 4. If `s3.cdn` is configured, Cloudflare's image-info JSON endpoint is fetched as supplementary metadata (file size, format, etc.). This step is skipped entirely on non-Cloudflare providers.
 5. `s3_key`, `s3_json`, `s3_width`, and `s3_height` are saved to the file's content file.
 6. **Only after all of the above succeeds**, the local file is replaced with a 1×1px placeholder.
+7. Published media copies and thumbnails are removed (on existing installs, re-run the migrate script, or delete media/pages/. Deleting it is safe because Kirby regenerates it on demand, and synced files are served from the CDN anyway.). 
 
 If any step fails, the error is logged and the local file is left completely untouched — nothing is deleted or replaced on a failed upload.
 
