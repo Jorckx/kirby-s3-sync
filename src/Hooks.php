@@ -1,58 +1,86 @@
 <?php
 
 use Joredierckx\KirbyS3Sync\Uploader;
+use Joredierckx\KirbyS3Sync\DeferSync;
 use Joredierckx\KirbyS3Sync\Client;
 
-/**
- * Runs the upload after the current HTTP response has already been
- * sent to the browser, so the Panel never waits on S3/CDN latency.
- *
- * Falls back to running inline (old behaviour) on SAPIs that don't
- * support fastcgi_finish_request(), e.g. the built-in dev server or CLI.
- */
-function s3syncDeferred(\Closure $work): void
-{
-    ignore_user_abort(true);
-
-    register_shutdown_function(function () use ($work) {
-        if (function_exists('fastcgi_finish_request')) {
-            fastcgi_finish_request();
-        }
-        $work();
-    });
-}
+// /**
+//  * Runs the upload after the current HTTP response has already been
+//  * sent to the browser, so the Panel never waits on S3/CDN latency.
+//  *
+//  * Falls back to running inline (old behaviour) on SAPIs that don't
+//  * support fastcgi_finish_request(), e.g. the built-in dev server or CLI.
+//  */
+// function s3syncDeferred(\Closure $work): void
+// {
+//     ignore_user_abort(true);
+//
+//     register_shutdown_function(function () use ($work) {
+//         if (function_exists('fastcgi_finish_request')) {
+//             fastcgi_finish_request();
+//         }
+//         $work();
+//     });
+// }
 
 // Register the hooks
 return [
     'file.create:after' => function ($file) {
         if (!option('s3.active')) return;
-        s3syncDeferred(function () use ($file){
-	        try {
-	            Uploader::uploadAndReplace($file);
-	        } catch (\Throwable $t) {
-	            error_log(sprintf(
-	            	'S3 upload failed for %s (page: %s): %s',
-	             	$file->filename(),
-	              	$file->page() ? $file->page()->id() : 'unknown',
-	             	$t->getMessage()
-	            ));
-	        }
+        // 1. Runs right away: upload, set width/height, write the placeholder, unpublish media
+        try {
+            Uploader::uploadAndReplace($file);
+        } catch (\Throwable $t) {
+            error_log(sprintf(
+                'S3 upload failed for %s (page: %s): %s',
+                $file->filename(),
+                $file->page() ? $file->page()->id() : 'unknown',
+                $t->getMessage()
+            ));
+            return; // no upload means no CDN JSON to fetch
+        }
+
+        // 2. Runs after the response is sent: fetch the CDN JSON (sleep + HTTP request)
+        DeferSync::deferSync(function () use ($file) {
+            try {
+                Uploader::syncCdnJson($file);
+            } catch (\Throwable $t) {
+                error_log(sprintf(
+                    'S3 json fetch failed for %s (page: %s): %s',
+                    $file->filename(),
+                    $file->page() ? $file->page()->id() : 'unknown',
+                    $t->getMessage()
+                ));
+            }
         });
     },
 
     'file.replace:after' => function ($newFile) {
         if (!option('s3.active')) return;
-        s3syncDeferred(function () use ($newFile){
-	        try {
-	            Uploader::uploadAndReplace($newFile);
-	        } catch (\Throwable $t) {
-	            error_log(sprintf(
-	            	'S3 replace failed for %s (page: %s): %s',
-	             	$newFile->filename(),
-	              	$newFile->page() ? $newFile->page()->id() : 'unknown',
-	             	$t->getMessage()
-	            ));
-	        }
+        // 1. Runs right away: upload, set width/height, write the placeholder, unpublish media
+        try {
+            Uploader::uploadAndReplace($newFile);
+        } catch (\Throwable $t) {
+            error_log(sprintf(
+            	'S3 replace failed for %s (page: %s): %s',
+             	$newFile->filename(),
+              	$newFile->page() ? $newFile->page()->id() : 'unknown',
+             	$t->getMessage()
+            ));
+            return; // no upload means no CDN JSON to fetch
+        }
+        // 2. Runs after the response is sent: fetch the CDN JSON (sleep + HTTP request)
+        DeferSync::deferSync(function () use ($newFile){
+            try {
+                Uploader::syncCdnJson($newFile);
+            } catch (\Throwable $t) {
+                error_log(sprintf(
+                    'S3 json fetch failed for %s (page: %s): %s',
+                    $newFile->filename(),
+                    $newFile->page() ? $newFile->page()->id() : 'unknown',
+                    $t->getMessage()
+                ));
+            }
         });
     },
 

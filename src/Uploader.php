@@ -29,13 +29,8 @@ class Uploader
         $s3Width  = $size ? $size[0] : null;
         $s3Height = $size ? $size[1] : null;
 
-        // s3_json is bonus metadata only (format, original file size, etc.)
-        // — never required for width/height, which are already set above
-       	$s3Json = option('s3.json', false) ? static::fetchCdnJson($key) : null;
-
         $file->update([
             's3_key'    => $key,
-            's3_json'   => $s3Json,
             's3_width'  => $s3Width,
             's3_height' => $s3Height,
         ]);
@@ -56,6 +51,7 @@ class Uploader
         return option('s3.sitename') . '/' . $file->page()->id() . '/assets/' . $file->type() . 's/' . $file->filename();
     }
 
+    // JSON (CF R2 compatible)
     protected static function fetchCdnJson(string $key): ?string
     {
         if (!$cdn = option('s3.cdn')) {
@@ -68,7 +64,26 @@ class Uploader
             return null;
         }
 
-        $decoded = json_decode($response, true);
+
+
+        // $decoded = json_decode($response, true);
         return json_last_error() === JSON_ERROR_NONE ? $response : null;
+    }
+
+    public static function syncCdnJson($file): void
+    {
+        if (!option('s3.json', false)) return;
+
+        // Reload the file: the $file the hook received still has the old content (no s3_key, width or height)
+        $fresh = $file->page()?->file($file->filename());
+        if (!$fresh) return;
+
+        $key = $fresh->content()->get('s3_key')->value();
+        if (!$key) return; // the upload failed, so there's nothing on the CDN to fetch
+
+        $json = static::fetchCdnJson($key);
+        if (!$json) return;
+
+        $fresh->update(['s3_json' => $json]);
     }
 }
