@@ -1,6 +1,7 @@
 <?php
 
 use Joredierckx\KirbyS3Sync\Uploader;
+use Joredierckx\KirbyS3Sync\Env;
 
 return [
     'routes' => [
@@ -18,6 +19,12 @@ return [
 
                 if (!$file) {
                     return ['status' => 'error', 'message' => 'File not found'];
+                }
+
+                // Localhost without s3.localhost: only log what would happen
+                if (Env::bypass()) {
+                    Uploader::dryRun('api upload', $file);
+                    return ['status' => 'ok', 'dryRun' => true];
                 }
 
                 try {

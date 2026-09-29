@@ -10,5 +10,7 @@ return [
         'region'    => 'auto or <your-region>',  // R2 always uses 'auto'
         'endpoint'  => 'https://<your-account-id>.r2.cloudflarestorage.com',
         'cdn'       => '<custom-domain> or <dev-domain>', // your R2 public domain
+        'json'      => false, // true = fetch Cloudflare image JSON (deferred) and store it as s3_json
+        'localhost' => false, // true = really sync from localhost (*.test, *.local, localhost); false = dry run, only logged
     ],
 ];
