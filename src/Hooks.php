@@ -42,7 +42,7 @@ return [
 
     'file.replace:after' => function ($newFile) {
         if (!option('s3.active')) return;
-        s3syncDeferred(function () use ($file){
+        s3syncDeferred(function () use ($newFile){
 	        try {
 	            Uploader::uploadAndReplace($newFile);
 	        } catch (\Throwable $t) {
