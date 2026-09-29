@@ -29,19 +29,21 @@ class Uploader
         $s3Width  = $size ? $size[0] : null;
         $s3Height = $size ? $size[1] : null;
 
-        // s3_json is bonus metadata only (format, original file size, etc.)
-        // — never required for width/height, which are already set above
-       	$s3Json = option('s3.json', false) ? static::fetchCdnJson($key) : null;
-
         $file->update([
             's3_key'    => $key,
-            's3_json'   => $s3Json,
             's3_width'  => $s3Width,
             's3_height' => $s3Height,
         ]);
 
         $placeholder = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==');
         file_put_contents($file->root(), $placeholder);
+
+        // MEDIA ONLY UNPUBLISH
+        // Drop any media copies/thumbs Kirby published from the original before the sync finished (all hash versions share the media token)
+        $file->unpublish(true);
+        // This uses Kirby's own FileActions::unpublish($onlyMedia = true) → Media::unpublish(), which globs <mediaToken>-* and removes every hash version. That covers the orphaned old-hash folder and all the thumbnails in it.
+        // true = media only. It leaves locks and the UUID cache alone.
+        // It runs last, so a failed upload still leaves everything as it was.
     }
 
     public static function key($file): string
@@ -49,19 +51,4 @@ class Uploader
         return option('s3.sitename') . '/' . $file->page()->id() . '/assets/' . $file->type() . 's/' . $file->filename();
     }
 
-    protected static function fetchCdnJson(string $key): ?string
-    {
-        if (!$cdn = option('s3.cdn')) {
-            return null;
-        }
-
-        sleep(1); // give Cloudflare a moment to process
-        $response = @file_get_contents($cdn . '/cdn-cgi/image/format=json/' . $key);
-        if (!$response) {
-            return null;
-        }
-
-        $decoded = json_decode($response, true);
-        return json_last_error() === JSON_ERROR_NONE ? $response : null;
-    }
 }
