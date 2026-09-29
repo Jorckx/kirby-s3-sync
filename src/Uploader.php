@@ -51,39 +51,4 @@ class Uploader
         return option('s3.sitename') . '/' . $file->page()->id() . '/assets/' . $file->type() . 's/' . $file->filename();
     }
 
-    // JSON (CF R2 compatible)
-    protected static function fetchCdnJson(string $key): ?string
-    {
-        if (!$cdn = option('s3.cdn')) {
-            return null;
-        }
-
-        sleep(1); // give Cloudflare a moment to process
-        $response = @file_get_contents($cdn . '/cdn-cgi/image/format=json/' . $key);
-        if (!$response) {
-            return null;
-        }
-
-
-
-        // $decoded = json_decode($response, true);
-        return json_last_error() === JSON_ERROR_NONE ? $response : null;
-    }
-
-    public static function syncCdnJson($file): void
-    {
-        if (!option('s3.json', false)) return;
-
-        // Reload the file: the $file the hook received still has the old content (no s3_key, width or height)
-        $fresh = $file->page()?->file($file->filename());
-        if (!$fresh) return;
-
-        $key = $fresh->content()->get('s3_key')->value();
-        if (!$key) return; // the upload failed, so there's nothing on the CDN to fetch
-
-        $json = static::fetchCdnJson($key);
-        if (!$json) return;
-
-        $fresh->update(['s3_json' => $json]);
-    }
 }
