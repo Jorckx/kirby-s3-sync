@@ -92,7 +92,7 @@ Kirby supports environment-specific config files (e.g. `config/config.local.php`
 
 ### Local development
 
-With `s3.active` set to `true` (default) and `s3.localhost` set to `false` (default), uploads, replaces and deletes on a local host are only logged to `site/logs/s3-sync.log`:
+With `s3.active` set to `true` and `s3.localhost` set to `false` (default), uploads, replaces and deletes on a local host are only logged to `site/logs/s3-sync.log`:
 
 ```
 [2026-09-29 17:10:02] INFO create:after dry run {"file":"foo.jpg","page":"projects/x","bucket":"…","key":"…","s3_width":2400,"s3_height":1600,"cdn_url":"…","would":[…]}
@@ -122,7 +122,7 @@ If any step fails, the error is logged and the local file is left completely unt
 
 ### On file delete
 
-The object is copied to an `_archive/` prefix in the same bucket before the original key is deleted — a soft-delete safety net. You can periodically clear out `_archive/` manually once you're confident nothing needs recovering.
+The object is copied to an `_archive/` prefix in the same bucket before the original key is deleted — a soft-delete safety net. You can periodically clear out `_archive/` manually (or set up a cron-job) once you're confident nothing needs recovering.
 
 ### Serving files
 

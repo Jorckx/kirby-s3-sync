@@ -2,7 +2,7 @@
     "name": "jorckx/kirby-s3-sync",
     "description": "🔄 Syncs Kirby files to s3.",
     "type": "kirby-plugin",
-    "version": "1.0.8",
+    "version": "1.0.9",
     "keywords": [
       "content",
       "assets",

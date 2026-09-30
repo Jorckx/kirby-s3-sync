@@ -2,14 +2,14 @@
 
 return [
     's3' => [
-        'active'    => '<boolean>', // whether to use R2 bucket for file storage
-        'key'       => '<your-r2-access-key-id>',
-        'secret'    => '<your-r2-secret-access-key>',
+        'active'    => '<boolean>', // whether to use S3 bucket for file storage
+        'key'       => '<your-s3-access-key-id>',
+        'secret'    => '<your-s3-secret-access-key>',
         'bucket'    => '<your-bucket-name>',
         'sitename'  => '<website-name>', // never use '.' since this will be used as a subdomain
-        'region'    => 'auto or <your-region>',  // R2 always uses 'auto'
-        'endpoint'  => 'https://<your-account-id>.r2.cloudflarestorage.com',
-        'cdn'       => '<custom-domain> or <dev-domain>', // your R2 public domain
+        'region'    => 'auto or <your-region>',  // S3 always uses 'auto'
+        'endpoint'  => 'https://<your-account-id>.s3.cloudflarestorage.com',
+        'cdn'       => '<custom-domain> or <dev-domain>', // your S3 public domain
         'json'      => false, // true = fetch Cloudflare image JSON (deferred) and store it as s3_json
         'localhost' => false, // true = really sync from localhost (*.test, *.local, localhost); false = dry run, only logged
     ],

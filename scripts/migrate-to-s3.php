@@ -1,13 +1,11 @@
 <?php
 
-use function ast\parse_code;
-
 // I. LOCATION
 // place this script in the `scripts` folder at the root of your Kirby installation
 //
 // II. HOW TO RUN
-// Run with: php scripts/migrate-to-r2.php
-// Dry run:  php scripts/migrate-to-r2.php --dry-run
+// Run with: php scripts/migrate-to-s3.php
+// Dry run:  php scripts/migrate-to-s3.php --dry-run
 
 // ——————————————————————————————————————————————————————————
 // 1. Load Composer's autoloader first
@@ -53,7 +51,7 @@ echo $dryRun ? "🔍 DRY RUN — nothing will be changed\n\n" : "🚀 Starting m
 $s3Key    = $_ENV['S3_KEY'] ?? getenv('S3_KEY');
 $s3Secret = $_ENV['S3_SECRET'] ?? getenv('S3_SECRET');
 
-// 9 Required config — must all be set before we touch R2
+// 9 Required config — must all be set before we touch S3
 $required = ['s3.sitename', 's3.bucket', 's3.region', 's3.endpoint'];
 $missing  = [];
 foreach ($required as $key) {
@@ -114,8 +112,8 @@ if ($migrateAll === 'y') {
 }
 echo "Pages: " . count($pages) . "\n";
 echo "Files: {$fileCount}\n";
-echo "Mode:  " . ($dryRun ? "DRY RUN (no changes)" : "LIVE (will upload/move/delete in R2)") . "\n";
-echo "expected R2 key: \n" . $siteName . '/<page-id>/assets/<file-type>/<filename>' . "\n";
+echo "Mode:  " . ($dryRun ? "DRY RUN (no changes)" : "LIVE (will upload/move/delete in S3)") . "\n";
+echo "expected S3 key: \n" . $siteName . '/<page-id>/assets/<file-type>/<filename>' . "\n";
 
 echo "\nProceed? (y/n): ";
 $confirm = readline();
@@ -134,18 +132,18 @@ foreach ($pages as $page) {
 
   	$expectedKey = $siteName . '/' . $file->page()->id() . '/assets/' . $file->type() . 's/' . $file->filename();
 
-    // 14.1 Check if file is already on R2
+    // 14.1 Check if file is already on S3
     if ($file->content()->get('s3_key')->isNotEmpty()) {
       $currentKey = $file->content()->get('s3_key')->value();
 
       // Check if the path matches the expected structure
       if ($currentKey === $expectedKey) {
         $skipped[] = $file->id();
-        echo "⏭  Skipping (already on R2 with correct path): {$file->id()}\n";
+        echo "⏭  Skipping (already on S3 with correct path): {$file->id()}\n";
         continue;
       }
 
-      // Path has changed — move the file in R2
+      // Path has changed — move the file in S3
       echo "🔄 Moving (path changed): {$currentKey} → {$expectedKey}\n";
 
       if (!$dryRun) {
@@ -166,7 +164,7 @@ foreach ($pages as $page) {
           // Update metadata FIRST — this is the source of truth we care most about protecting
           $file->update(['s3_key' => $expectedKey]);
 
-          // Delete old location — if this fails, we just leak a stale copy in R2 (harmless, cleanable later)
+          // Delete old location — if this fails, we just leak a stale copy in S3 (harmless, cleanable later)
           try {
             $client->deleteObject([
               'Bucket' => option('s3.bucket'),

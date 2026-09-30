@@ -57,11 +57,11 @@ if ($updateAll !== 'y') {
 // 8. Iterate over pages and files
 foreach ($pages as $page) {
   foreach ($page->files() as $file) {
-    // Skip files not on R2
+    // Skip files not on S3
     $s3Key = $file->content()->get('s3_key')->value();
     if (!$s3Key) {
       $skipped[] = $file->id();
-      echo "⏭  Skipping (not on R2): {$file->id()}\n";
+      echo "⏭  Skipping (not on S3): {$file->id()}\n";
       continue;
     }
 
