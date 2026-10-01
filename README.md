@@ -185,6 +185,40 @@ php scripts/migrate-to-s3.php
 - Skips files already correctly placed; moves files whose expected key has changed; uploads new files
 - Safe to re-run — already-migrated files are detected and skipped, failed files are retried automatically on the next run
 
+### `s3:migrate` command (terminal + Panel button)
+
+The same migration is also registered as a [Kirby CLI](https://github.com/getkirby/cli) command. It runs without prompts, so it can be triggered from the Panel with [Janitor](https://github.com/bnomei/kirby-janitor):
+
+```bash
+vendor/bin/kirby s3:migrate --dry-run            # whole site, only report
+vendor/bin/kirby s3:migrate --page projects/x    # one page
+vendor/bin/kirby s3:migrate                      # whole site, live
+```
+
+Panel buttons (requires `bnomei/kirby-janitor`), e.g. in `site/blueprints/site.yml`:
+
+```yaml
+s3MigrateDry:
+  type: janitor
+  command: 's3:migrate --dry-run'
+  label: S3 migration — dry run
+  icon: search
+  progress: Checking…
+s3Migrate:
+  type: janitor
+  command: 's3:migrate'
+  label: S3 migration — run
+  icon: upload
+  confirm: Upload all local files to S3 and replace them with placeholders?
+  progress: Migrating…
+```
+
+- On `site.yml` the button migrates the whole site; on a page blueprint only that page (Janitor adds `--page`).
+- Only admins can run it from the Panel.
+- On a local host it's always a dry run unless `s3.localhost` is `true` (same rule as the hooks).
+- The button shows a summary (`Done · skipped · errors`); the full per-file list is in the browser console and in `site/logs/s3-sync.log`.
+- New uploads reuse the normal upload flow (local width/height, placeholder, media cleanup). With `s3.json` on, the CDN JSON is fetched after the response is sent.
+
 ### `update-s3-meta.php`
 
 Backfills `s3_width` / `s3_height` (and `s3_json`) on files that were migrated before those fields existed, or after a plugin upgrade that adds new metadata fields.
