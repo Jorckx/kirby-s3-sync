@@ -2,7 +2,9 @@
 
 use Joredierckx\KirbyS3Sync\Env;
 use Joredierckx\KirbyS3Sync\Migrator;
+use Joredierckx\KirbyS3Sync\Restorer;
 use Joredierckx\KirbyS3Sync\Uploader;
+use Joredierckx\KirbyS3Sync\CommandContext;
 use Kirby\CLI\CLI;
 use Kirby\Cms\Pages;
 
@@ -20,107 +22,82 @@ return [
             ],
         ] + (class_exists(\Bnomei\Janitor::class) ? \Bnomei\Janitor::ARGS : []),
         'command' => static function (CLI $cli): void {
-            $kirby = $cli->kirby();
-
-            // Response for the Janitor button (no-op in the terminal)
-            $respond = function (int $status, string $message, array $lines = []) use ($cli) {
-                $status === 200 ? $cli->success($message) : $cli->error($message);
-                if (function_exists('janitor')) {
-                    janitor()->data($cli->arg('command'), [
-                        'status'  => $status,
-                        'message' => $message,
-                        'log'     => implode("\n", $lines),
-                    ]);
-                }
-            };
-
-            // From the Panel only admins; in the terminal there is no user
-            $user = $kirby->user();
-            if ($user && !$user->isAdmin()) {
-                $respond(403, 'Only admins can run the S3 migration');
-                return;
-            }
-
-            if (!option('s3.active')) {
-                $respond(400, 's3.active is off');
-                return;
-            }
-
-            foreach (['s3.bucket', 's3.region', 's3.endpoint', 's3.sitename'] as $key) {
-                if (empty(option($key))) {
-                    $respond(400, "Missing required config: {$key}");
-                    return;
-                }
-            }
-
-            // Scope
-            $id = $cli->arg('page');
-            if ($id) {
-                if (!$page = $kirby->page($id)) {
-                    $respond(404, "Page not found: {$id}");
-                    return;
-                }
-                $pages = new Pages([$page]);
-                $scope = "single page → {$page->id()}";
-            } else {
-                $pages = $kirby->site()->index();
-                $scope = 'ALL pages';
-            }
+            $ctx = CommandContext::boot($cli, requireActive: true, requiredOptions: [
+                's3.bucket', 's3.region', 's3.endpoint', 's3.sitename',
+            ]);
+            if (!$ctx) return;
 
             $forcedDryRun = Env::bypass();
             $dryRun       = (bool)$cli->arg('dry-run') || $forcedDryRun;
 
-            // Overview (also ends up in the Janitor log)
-            $fileCount = Migrator::countFiles($pages);
-
-            // Real example key, built by the same code that does the upload
             $example = null;
-            foreach ($pages as $p) {
-                if ($f = $p->files()->first()) {
-                    $example = $f;
-                    break;
-                }
+            foreach ($ctx->pages as $p) {
+                if ($f = $p->files()->first()) { $example = $f; break; }
             }
 
-            $overview = [
+            $overview = $ctx->show([
                 '--- About to migrate ---',
-                "Scope:  {$scope}",
-                'Pages:  ' . $pages->count(),
-                "Files:  {$fileCount}",
+                "Scope:  {$ctx->scope}",
+                'Pages:  ' . $ctx->pages->count(),
+                'Files:  ' . Migrator::countFiles($ctx->pages),
                 'Mode:   ' . ($dryRun
                     ? 'DRY RUN (no changes)' . ($forcedDryRun && !$cli->arg('dry-run') ? ' — forced on localhost' : '')
                     : 'LIVE (will upload/move/delete in S3)'),
                 'Bucket: ' . option('s3.bucket'),
                 'Example key: ' . ($example ? Uploader::key($example) : '(no files)'),
                 '',
-            ];
-            foreach ($overview as $line) {
-                $cli->out($line);
-            }
+            ]);
 
-            // Confirm only in a real terminal; never from the Panel (no TTY, it would hang)
-            // Janitor is safe. Panel runs always have a $user, so they never prompt.
-            // Because the overview is added to the log, the button still shows the same context.
-            $interactive = !$user
-                && !$cli->arg('yes')
-                && function_exists('posix_isatty')
-                && posix_isatty(STDIN);
+            if (!$dryRun && !$ctx->confirmed()) return;
 
-            if ($interactive && !$dryRun) {
-                if (!$cli->confirm('Proceed?')->confirmed()) {
-                    $cli->out('Aborted.');
-                    return;
-                }
-                $cli->out('');
-            }
+            $result = Migrator::run($ctx->pages, $dryRun, fn (string $l) => $cli->out($l));
+            $ctx->done($result, $overview);
+        },
+    ],
+    's3:restore' => [
+        'description' => 'Download files from S3 back into Kirby (run with --dry-run first)',
+        'args' => [
+            'dry-run' => [
+                'longPrefix'  => 'dry-run',
+                'description' => 'Only report what would happen',
+                'noValue'     => true,
+            ],
+            'delete-remote' => [
+                'longPrefix'  => 'delete-remote',
+                'description' => 'Delete the S3 object after a verified restore',
+                'noValue'     => true,
+            ],
+            'yes' => [
+                'prefix'      => 'y',
+                'longPrefix'  => 'yes',
+                'description' => 'Skip the confirmation prompt',
+                'noValue'     => true,
+            ],
+        ] + (class_exists(\Bnomei\Janitor::class) ? \Bnomei\Janitor::ARGS : []),
+        'command' => static function (CLI $cli): void {
+            // no s3.active requirement, and sitename isn't needed to download
+            $ctx = CommandContext::boot($cli, requireActive: false, requiredOptions: [
+                's3.bucket', 's3.region', 's3.endpoint',
+            ]);
+            if (!$ctx) return;
 
-            $result = Migrator::run($pages, $dryRun, fn (string $line) => $cli->out($line));
+            $dryRun       = (bool)$cli->arg('dry-run');
+            $deleteRemote = (bool)$cli->arg('delete-remote');
 
-            $respond(
-                $result['errors'] ? 500 : 200,
-                $result['summary'],
-                array_merge($overview, $result['lines'])
-            );
+            $overview = $ctx->show([
+                '--- About to restore from S3 ---',
+                "Scope:  {$ctx->scope}",
+                'Pages:  ' . $ctx->pages->count(),
+                'Files:  ' . Migrator::countFiles($ctx->pages),
+                'Mode:   ' . ($dryRun ? 'DRY RUN (no changes)' : 'LIVE (will download and overwrite placeholders)'),
+                'Remote: ' . ($deleteRemote ? 'objects will be DELETED from S3' : 'objects stay on S3'),
+                '',
+            ]);
+
+            if (!$dryRun && !$ctx->confirmed()) return;
+
+            $result = Restorer::run($ctx->pages, $dryRun, $deleteRemote, fn (string $l) => $cli->out($l));
+            $ctx->done($result, $overview);
         },
     ],
 ];
