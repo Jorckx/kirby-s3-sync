@@ -1,7 +1,7 @@
 <?php
 
 namespace Joredierckx\KirbyS3Sync;
-
+use Kirby\Cms\Pages;
 /**
  * Bulk-migrates existing files to S3 (used by the `s3:migrate` command).
  *
