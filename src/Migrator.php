@@ -13,7 +13,7 @@ namespace Joredierckx\KirbyS3Sync;
  */
 class Migrator
 {
-    public static function run(iterable $pages, bool $dryRun, ?callable $out = null): array
+    public static function run(Pages $pages, bool $dryRun, ?callable $out = null): array
     {
         @set_time_limit(0);
         ignore_user_abort(true);
@@ -28,8 +28,12 @@ class Migrator
 
         $say($dryRun ? 'DRY RUN — nothing will be changed' : 'LIVE — uploading/moving files in S3');
 
+        $total   = static::countFiles($pages);
+        $current = 0;
         foreach ($pages as $page) {
             foreach ($page->files() as $file) {
+                $current++;
+                $tag         = "[{$current}/{$total}] ";
                 $id          = $file->id();
                 $expectedKey = Uploader::key($file);
                 $currentKey  = $file->content()->get('s3_key')->value();
@@ -38,13 +42,13 @@ class Migrator
                     // Already on S3 with the right key
                     if ($currentKey === $expectedKey) {
                         $result['skipped'][] = $id;
-                        $say("skip (already on S3): {$id}");
+                        $say($tag . "skip (already on S3): {$id}");
                         continue;
                     }
 
                     // On S3 under an old key (e.g. page moved/renamed): move it
                     if ($currentKey) {
-                        $say(($dryRun ? 'would move' : 'move') . ": {$currentKey} → {$expectedKey}");
+                        $say($tag . ($dryRun ? 'would move' : 'move') . ": {$currentKey} → {$expectedKey}");
                         if (!$dryRun) {
                             static::move($file, $currentKey, $expectedKey, $say);
                         }
@@ -56,11 +60,11 @@ class Migrator
                     // 1x1 placeholder (68 bytes) without s3_key: nothing to upload
                     if (filesize($file->root()) < 100) {
                         $result['skipped'][] = $id;
-                        $say("skip (looks like placeholder): {$id}");
+                        $say($tag . "skip (looks like placeholder): {$id}");
                         continue;
                     }
 
-                    $say(($dryRun ? 'would upload' : 'upload') . ": {$id} → {$expectedKey}");
+                    $say($tag . ($dryRun ? 'would upload' : 'upload') . ": {$id} → {$expectedKey}");
                     if (!$dryRun) {
                         Uploader::uploadAndReplace($file);
                         $uploaded[] = $file;
@@ -69,7 +73,7 @@ class Migrator
                     Log::info('migrate ' . ($dryRun ? 'would upload' : 'uploaded'), Log::file($file, ['key' => $expectedKey]));
                 } catch (\Throwable $t) {
                     $result['errors'][] = ['file' => $id, 'error' => $t->getMessage()];
-                    $say("failed: {$id}: {$t->getMessage()}");
+                    $say($tag . "failed: {$id}: {$t->getMessage()}");
                     Log::error('migrate failed', Log::file($file, ['error' => $t->getMessage()]));
                 }
             }
@@ -99,6 +103,15 @@ class Migrator
         $result['lines'][] = $result['summary'];
 
         return $result;
+    }
+
+    public static function countFiles(Pages $pages): int
+    {
+        $n = 0;
+        foreach ($pages as $page) {
+            $n += $page->files()->count();
+        }
+        return $n;
     }
 
     protected static function move($file, string $from, string $to, callable $say): void

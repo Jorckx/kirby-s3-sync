@@ -2,10 +2,12 @@
 
 use Joredierckx\KirbyS3Sync\Env;
 use Joredierckx\KirbyS3Sync\Migrator;
+use Joredierckx\KirbyS3Sync\Uploader;
 use Kirby\CLI\CLI;
 use Kirby\Cms\Pages;
 
 // Kirby CLI commands: `vendor/bin/kirby s3:migrate --dry-run`
+// kirby CLI on specific page: `vendor/bin/kirby s3:migrate --dry-run --page=<page-id>`
 // or from the Panel with a Janitor button (`type: janitor`, `command: 's3:migrate'`)
 return [
     's3:migrate' => [
@@ -51,26 +53,73 @@ return [
                 }
             }
 
-            // Button on a page blueprint → only that page, otherwise the whole site
-            if ($id = $cli->arg('page')) {
+            // Scope
+            $id = $cli->arg('page');
+            if ($id) {
                 if (!$page = $kirby->page($id)) {
                     $respond(404, "Page not found: {$id}");
                     return;
                 }
                 $pages = new Pages([$page]);
+                $scope = "single page → {$page->id()}";
             } else {
                 $pages = $kirby->site()->index();
+                $scope = 'ALL pages';
             }
 
-            // Same rule as the hooks: localhost only does a dry run unless s3.localhost is on
-            $dryRun = (bool)$cli->arg('dry-run') || Env::bypass();
+            $forcedDryRun = Env::bypass();
+            $dryRun       = (bool)$cli->arg('dry-run') || $forcedDryRun;
+
+            // Overview (also ends up in the Janitor log)
+            $fileCount = Migrator::countFiles($pages);
+
+            // Real example key, built by the same code that does the upload
+            $example = null;
+            foreach ($pages as $p) {
+                if ($f = $p->files()->first()) {
+                    $example = $f;
+                    break;
+                }
+            }
+
+            $overview = [
+                '--- About to migrate ---',
+                "Scope:  {$scope}",
+                'Pages:  ' . $pages->count(),
+                "Files:  {$fileCount}",
+                'Mode:   ' . ($dryRun
+                    ? 'DRY RUN (no changes)' . ($forcedDryRun && !$cli->arg('dry-run') ? ' — forced on localhost' : '')
+                    : 'LIVE (will upload/move/delete in S3)'),
+                'Bucket: ' . option('s3.bucket'),
+                'Example key: ' . ($example ? Uploader::key($example) : '(no files)'),
+                '',
+            ];
+            foreach ($overview as $line) {
+                $cli->out($line);
+            }
+
+            // Confirm only in a real terminal; never from the Panel (no TTY, it would hang)
+            // Janitor is safe. Panel runs always have a $user, so they never prompt.
+            // Because the overview is added to the log, the button still shows the same context.
+            $interactive = !$user
+                && !$cli->arg('yes')
+                && function_exists('posix_isatty')
+                && posix_isatty(STDIN);
+
+            if ($interactive && !$dryRun) {
+                if (!$cli->confirm('Proceed?')->confirmed()) {
+                    $cli->out('Aborted.');
+                    return;
+                }
+                $cli->out('');
+            }
 
             $result = Migrator::run($pages, $dryRun, fn (string $line) => $cli->out($line));
 
             $respond(
                 $result['errors'] ? 500 : 200,
                 $result['summary'],
-                $result['lines']
+                array_merge($overview, $result['lines'])
             );
         },
     ],
