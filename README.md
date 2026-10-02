@@ -4,29 +4,29 @@
 <h1 align="center">Kirby S3 Sync</h1>
 
 >[!NOTE]
->This is an early-stage release. Although core [safeguards](#safety-notes) are in place, use it at your own risk. We strongly recommend creating backups before use. Since version 1.0.8 it supports [local development](#local-development), you can use it to test before deploying to production.
+>Disclaimer: Although core [safeguards](#safety-notes) are in place, use it at your own risk. We strongly recommend creating backups before use. Since version 1.0.8 it supports [local development](#local-development), you can use it to test before deploying to production.
 
 Sync Kirby CMS files to S3 bucket/storage automatically, offloading local/server disk usage and serving assets through a CDN.
 
-This plugin was originally inteded to work with Cloudflare's r2 storage, but since this is s3 compatible it works with all any S3-compatible storage.
+This plugin was originally inteded to work with Cloudflare's r2 storage, but since this is s3 compatible it (should) work with any S3-compatible storage.
 
-Files uploaded through the Panel are pushed to your bucket, verified, and then replaced locally with a tiny placeholder — so your Kirby installation stays lightweight while the real files live on R2. `file::url`, `file::version`, and `file::dimensions` are transparently rerouted to the CDN, so templates and the Panel keep working without any changes to your existing code.
+Files uploaded through the Panel are pushed to your bucket, verified, and then replaced locally with a tiny placeholder — so your Kirby installation stays lightweight while the real files live on S3. `file::url`, `file::version`, and `file::dimensions` are transparently rerouted to the CDN, so templates and the Panel keep working without any changes to your existing code.
 
-Built and maintained by [Jore Dierckx](https://studiodier.com).
+If this plugin saves you time, consider [supporting](https://www.buymeacoffee.com/joredierckx)
 
 ---
 
 ## Features
 
-- Automatic upload on file create/replace via Kirby hooks
-- Local file is only swapped for a placeholder **after** the upload is verified — nothing is lost on a failed upload
-- CDN-aware `file::url`, `file::version`, and `file::dimensions` components — templates don't need to change
-- Image dimensions read locally via `getimagesize()`, so width/height are always correct regardless of CDN processing delays
-- Optional Cloudflare Images JSON metadata stored alongside each file
-- Soft-delete: files are archived (`_archive/...`) in the bucket before deletion, not destroyed outright
-- REST API route for uploading from custom Panel UI or external tools
-- Standalone CLI scripts for bulk migration of existing files and for backfilling metadata after upgrades
-- Works with any S3-compatible provider (R2, DigitalOcean Spaces, etc.) — CDN-specific metadata is skipped automatically if `s3.cdn` isn't configured
+- ⬆️ Automatic upload on file create/replace via Kirby hooks
+- 🛟 Local file is only swapped for a placeholder **after** the upload is verified — nothing is lost on a failed upload
+- 🔗 CDN-aware `file::url`, `file::version`, and `file::dimensions` components — templates don't need to change
+- 📐 Image dimensions read locally via `getimagesize()`, so width/height are always correct regardless of CDN processing delays
+- 📝 Optional Cloudflare Images JSON metadata stored alongside each file
+- 🗄️ Soft-delete: files are archived (`_archive/...`) in the bucket before deletion, not destroyed outright
+- 🔌 REST API route for uploading from custom Panel UI or external tools
+- 🚚 `s3:migrate` command for bulk migration of existing files and for backfilling metadata after upgrades. Can run via CLI or Panel button (using the Janitor plugin)
+- ☁️ Works with any S3-compatible provider (R2, DigitalOcean Spaces, etc.) — CDN-specific metadata is skipped automatically if `s3.cdn` isn't configured
 
 ---
 
@@ -169,21 +169,48 @@ POST /api/s3-upload/{pageId}/{filename}
 
 ## CLI scripts
 
+>[!WARNING]
+>You need to install the CLI with composer into your project and not use the global version. Since Janitor depends on the CLI to be available, installing only the janitor plugin via submodules or via ZIP is NOT supported.
+
 Two standalone scripts are included in `scripts/` for one-off and maintenance work outside the normal Panel flow. Both support `--dry-run` and prompt for confirmation before making any changes.
 
-### `migrate-to-s3.php`
+### `migrate-to-s3.php` (legacy - removed since v1.2.0)
 
-Bulk-migrates existing local files to your bucket — intended for the initial move to R2, or for re-syncing after restoring a backup.
+Custom standalone scripts `/scripts/*-script.php` that were used before v1.2.0. These scripts are replaced by the `s3:migrate` command which offer the same functionality with a more modern interface (kirby/cli). 
+
+### `s3:migrate` command (terminal + Panel button)
+
+The same migration is also registered as a [Kirby CLI](https://github.com/getkirby/cli) command. It runs without prompts, so it can be triggered from the Panel with [Janitor](https://github.com/bnomei/kirby-janitor):
 
 ```bash
-php scripts/migrate-to-s3.php --dry-run
-php scripts/migrate-to-s3.php
+vendor/bin/kirby s3:migrate --dry-run            # whole site, only report
+vendor/bin/kirby s3:migrate --page projects/x    # one page
+vendor/bin/kirby s3:migrate                      # whole site, live
 ```
 
-- Prompts to migrate all pages or a single page by ID
-- Shows a scope summary (page/file counts, expected key structure) before asking for final confirmation
-- Skips files already correctly placed; moves files whose expected key has changed; uploads new files
-- Safe to re-run — already-migrated files are detected and skipped, failed files are retried automatically on the next run
+Panel buttons (requires `bnomei/kirby-janitor`), e.g. in `site/blueprints/site.yml`:
+
+```yaml
+s3MigrateDry:
+  type: janitor
+  command: 's3:migrate --dry-run'
+  label: S3 migration — dry run
+  icon: search
+  progress: Checking…
+s3Migrate:
+  type: janitor
+  command: 's3:migrate'
+  label: S3 migration — run
+  icon: upload
+  confirm: Upload all local files to S3 and replace them with placeholders?
+  progress: Migrating…
+```
+
+- On `site.yml` the button migrates the whole site; on a page blueprint only that page (Janitor adds `--page`).
+- Only admins can run it from the Panel.
+- On a local host it's always a dry run unless `s3.localhost` is `true` (same rule as the hooks).
+- The button shows a summary (`Done · skipped · errors`); the full per-file list is in the browser console and in `site/logs/s3-sync.log`.
+- New uploads reuse the normal upload flow (local width/height, placeholder, media cleanup). With `s3.json` on, the CDN JSON is fetched after the response is sent.
 
 ### `update-s3-meta.php`
 

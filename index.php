@@ -12,4 +12,5 @@ Kirby::plugin('joredierckx/kirby-s3-sync', [
     'hooks' => require __DIR__ . '/src/Hooks.php',
     'api'   => require __DIR__ . '/src/Api.php',
     'components' => require __DIR__ . '/src/Components.php',
+    'commands' => require __DIR__ . '/src/Commands.php',
 ]);
