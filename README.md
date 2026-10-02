@@ -19,14 +19,16 @@ If this plugin saves you time, consider [supporting](https://www.buymeacoffee.co
 ## Features
 
 - ⬆️ Automatic upload on file create/replace via Kirby hooks
+- ☁️ Works with any S3-compatible provider (R2, DigitalOcean Spaces, etc.) — CDN-specific metadata is skipped automatically if `s3.cdn` isn't configured
 - 🛟 Local file is only swapped for a placeholder **after** the upload is verified — nothing is lost on a failed upload
 - 🔗 CDN-aware `file::url`, `file::version`, and `file::dimensions` components — templates don't need to change
 - 📐 Image dimensions read locally via `getimagesize()`, so width/height are always correct regardless of CDN processing delays
 - 📝 Optional Cloudflare Images JSON metadata stored alongside each file
 - 🗄️ Soft-delete: files are archived (`_archive/...`) in the bucket before deletion, not destroyed outright
 - 🔌 REST API route for uploading from custom Panel UI or external tools
-- 🚚 `s3:migrate` command for bulk migration of existing files and for backfilling metadata after upgrades. Can run via CLI or Panel button (using the Janitor plugin)
-- ☁️ Works with any S3-compatible provider (R2, DigitalOcean Spaces, etc.) — CDN-specific metadata is skipped automatically if `s3.cdn` isn't configured
+- 🚚 CLI commands: `s3:migrate` and `s3:restore` (only works when [getkirby/cli](https://github.com/getkirby/cli) is installed)
+	- `s3:migrate` (since v1.2.0) command for bulk migration of existing files and for backfilling metadata after upgrades.
+	- `s3:restore` (since v1.2.1) command for reverse-migrating files from the s3 bucket back to the kirby's filesystem.
 
 ---
 
@@ -169,18 +171,17 @@ POST /api/s3-upload/{pageId}/{filename}
 
 ## CLI scripts
 
+### `scripts/` folder (legacy - removed since v1.2.0)
 >[!WARNING]
->You need to install the CLI with composer into your project and not use the global version. Since Janitor depends on the CLI to be available, installing only the janitor plugin via submodules or via ZIP is NOT supported.
+>legacy - the scripts-folder got replaced by the `s3:migrate` command since v1.2.0
 
-Two standalone scripts are included in `scripts/` for one-off and maintenance work outside the normal Panel flow. Both support `--dry-run` and prompt for confirmation before making any changes.
+Custom standalone scripts `/scripts/*-script.php` that were used before v1.2.0. These scripts are replaced by the commands which offer the same functionality with a more modern interface (kirby/cli). 
 
-### `migrate-to-s3.php` (legacy - removed since v1.2.0)
+### Commands: `s3:migrate` & `s3:restore`
 
-Custom standalone scripts `/scripts/*-script.php` that were used before v1.2.0. These scripts are replaced by the `s3:migrate` command which offer the same functionality with a more modern interface (kirby/cli). 
+`s3:migrate` runs the same migration, but with a more modern interface (kirby/cli). It can also be triggered from the Panel with [Janitor](https://github.com/bnomei/kirby-janitor):
 
-### `s3:migrate` command (terminal + Panel button)
-
-The same migration is also registered as a [Kirby CLI](https://github.com/getkirby/cli) command. It runs without prompts, so it can be triggered from the Panel with [Janitor](https://github.com/bnomei/kirby-janitor):
+`s3:restore` is the reverse migration command, which restores files from the S3 bucket back to the local filesystem (since v1.2.1).
 
 ```bash
 vendor/bin/kirby s3:migrate --dry-run            # whole site, only report
@@ -188,7 +189,11 @@ vendor/bin/kirby s3:migrate --page projects/x    # one page
 vendor/bin/kirby s3:migrate                      # whole site, live
 ```
 
+
 Panel buttons (requires `bnomei/kirby-janitor`), e.g. in `site/blueprints/site.yml`:
+
+>[!NOTE]
+>You need to install the CLI (getkirby/cli) with composer into your project and not use the global version. Since Janitor depends on the CLI to be available, installing only the janitor plugin via submodules or via ZIP is NOT supported.
 
 ```yaml
 s3MigrateDry:
