@@ -15,6 +15,7 @@ class CommandContext
         public readonly CLI $cli,
         public readonly Pages $pages,
         public readonly string $scope,
+        public readonly bool $fromPanel = false,
     ) {}
 
     /**
@@ -30,6 +31,13 @@ class CommandContext
         if ($user && !$user->isAdmin()) {
             static::respond($cli, 403, 'Only admins can run this command');
             return null;
+        }
+
+        $fromPanel = (bool)$user;
+
+        // Terminal: no user, so content updates would be refused
+        if (!$user) {
+            $kirby->impersonate('kirby');
         }
 
         if ($requireActive && !option('s3.active')) {
@@ -50,10 +58,10 @@ class CommandContext
                 static::respond($cli, 404, "Page not found: {$id}");
                 return null;
             }
-            return new static($cli, new Pages([$page]), "single page → {$page->id()}");
+            return new static($cli, new Pages([$page]), "single page → {$page->id()}", $fromPanel);
         }
 
-        return new static($cli, $kirby->site()->index(), 'ALL pages');
+        return new static($cli, $kirby->site()->index(), 'ALL pages', $fromPanel);
     }
 
     /** CLI output plus the Janitor response (no-op in the terminal) */
@@ -92,7 +100,7 @@ class CommandContext
     /** Only prompt in a real terminal, never from the Panel (no TTY, it would hang) */
     public function confirmed(string $question = 'Proceed?'): bool
     {
-        $interactive = !$this->cli->kirby()->user()
+        $interactive = !$this->fromPanel
             && !$this->cli->arg('yes')
             && function_exists('posix_isatty')
             && posix_isatty(STDIN);
