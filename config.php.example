@@ -11,6 +11,7 @@ return [
         'endpoint'  => 'https://<your-account-id>.s3.cloudflarestorage.com',
         'cdn'       => '<custom-domain> or <dev-domain>', // your S3 public domain
         'json'      => false, // true = fetch Cloudflare image JSON (deferred) and store it as s3_json
+        'resize'    => true, // false = no Cloudflare Transformations on the CDN zone: serve originals instead of /cdn-cgi/image URLs
         'localhost' => false, // true = really sync from localhost (*.test, *.local, localhost); false = dry run, only logged
     ],
 ];

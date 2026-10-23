@@ -90,6 +90,7 @@ Kirby supports environment-specific config files (e.g. `config/config.local.php`
 | `s3.sitename` | Yes      | Namespace prefix for object keys (`sitename/page-id/assets/...`). Must be unique per site if multiple sites share one bucket, or files can collide. Avoid `.` in the value since it's used as a subdomain. |
 | `s3.cdn`      | No       | Public CDN base URL. When set, enables Cloudflare Image Resizing URLs and JSON metadata fetching. Leave unset for providers without an equivalent (e.g. plain DigitalOcean Spaces). |
 | `s3.json`     | No       | Default `false`. When `true` (and `s3.cdn` is set), Cloudflare's image JSON is fetched after the response is sent and stored as `s3_json`. |
+| `s3.resize`   | No       | Default `true`. Set to `false` when the CDN zone has no Cloudflare Image Resizing/Transformations: `file::version` then returns the plain CDN URL of the original (a `/cdn-cgi/image/` URL would 404 and the browser blocks it with `ERR_BLOCKED_BY_ORB`), and the JSON fetch is skipped. |
 | `s3.localhost`| No       | Default `false`. On a local host (`localhost`, `*.test`, `*.local`, `*.ddev.site`, loopback IP) the sync runs as a **dry run**: nothing is uploaded or changed, and what would happen is logged. Set to `true` to really sync from localhost. |
 
 ### Local development

@@ -5,6 +5,7 @@ use Kirby\Cms\App as Kirby;
 Kirby::plugin('joredierckx/kirby-s3-sync', [
     'options' => [
         'active' => false,
+        'resize' => true,
     ],
     'blueprints' => [
       'fields/s3meta' => __DIR__ . '/blueprints/fields/s3meta.yml',

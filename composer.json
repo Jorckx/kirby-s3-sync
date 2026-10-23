@@ -2,8 +2,11 @@
     "name": "jorckx/kirby-s3-sync",
     "description": "🔄 Syncs Kirby files to s3.",
     "type": "kirby-plugin",
-    "version": "1.3.0",
+    "version": "1.3.1",
     "keywords": [
+    	"kirby",
+    	"kirby-cms",
+    	"kirby-plugin",
       "content",
       "assets",
       "migration",
@@ -29,6 +32,7 @@
         "source": "https://github.com/jorckx/kirby-s3-sync"
     },
     "require": {
+    		"php": ">=8.2",
         "getkirby/composer-installer": "^1.1",
         "aws/aws-sdk-php": "^3.0",
         "vlucas/phpdotenv": "^5.0"

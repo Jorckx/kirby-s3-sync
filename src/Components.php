@@ -34,6 +34,15 @@ return [
       return $kirby->nativeComponent('file::version')($kirby, $file, $options);
     }
 
+    // Zone without Cloudflare Transformations: serve the original, a /cdn-cgi/ URL would 404
+    if (option('s3.resize') === false) {
+      return new FileVersion([
+        'modifications' => $options,
+        'original'      => $file,
+        'url'           => option('s3.cdn') . '/' . $key,
+      ]);
+    }
+
     // Build Cloudflare Image Resizing URL
     $params = [];
     if (!empty($options['width']))  $params[] = 'width='  . $options['width'];

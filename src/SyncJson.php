@@ -39,6 +39,11 @@ class SyncJson
             return;
         }
 
+        if (option('s3.resize') === false) {
+            Log::info('json skipped: s3.resize off', Log::file($file));
+            return;
+        }
+
         // Reload the file: the $file the hook received still has the old content (no s3_key, width or height)
         $fresh = $file->page()?->file($file->filename());
         if (!$fresh) {
