@@ -36,7 +36,7 @@ class Migrator
                 $tag         = "[{$current}/{$total}] ";
                 $id          = $file->id();
                 $expectedKey = Uploader::key($file);
-                $currentKey  = $file->content()->get('s3_key')->value();
+                $currentKey  = Meta::get($file, 's3_key');
 
                 try {
                     // Already on S3 with the right key
@@ -131,7 +131,7 @@ class Migrator
         }
 
         // Update s3_key first: it's the source of truth we care most about
-        $file->update(['s3_key' => $to]);
+        Meta::set($file, ['s3_key' => $to]);
 
         // If this fails we only leak a stale copy in S3 (harmless, cleanable later)
         try {

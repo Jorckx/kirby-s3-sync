@@ -29,7 +29,7 @@ class Uploader
         $s3Width  = $size ? $size[0] : null;
         $s3Height = $size ? $size[1] : null;
 
-        $file->update([
+        Meta::set($file, [
             's3_key'    => $key,
             's3_width'  => $s3Width,
             's3_height' => $s3Height,

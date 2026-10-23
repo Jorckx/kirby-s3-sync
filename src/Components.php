@@ -2,11 +2,12 @@
 use Kirby\Cms\FileVersion as FileVersion;
 use Kirby\Image\Dimensions as Dimensions;
 use Kirby\Cms\App as Kirby;
+use Joredierckx\KirbyS3Sync\Meta;
 
 return [
   // Custom URL component to use CDN when available
   'file::url' => function (Kirby $kirby, $file) {
-    $key = $file->content()->get('s3_key')->value();
+    $key = Meta::get($file, 's3_key');
     if ($key) {
       return option('s3.cdn') . '/' . $key;
     }
@@ -15,10 +16,10 @@ return [
 
   // Custom dimensions component to use stored values when available
   'file::dimensions' => function (Kirby $kirby, $file) {
-    $key = $file->content()->get('s3_key')->value();
+    $key = Meta::get($file, 's3_key');
     if ($key) {
-      $width  = $file->content()->get('s3_width')->value();
-      $height = $file->content()->get('s3_height')->value();
+      $width  = Meta::get($file, 's3_width');
+      $height = Meta::get($file, 's3_height');
       if ($width && $height) {
         return new Dimensions((int)$width, (int)$height);
       }
@@ -28,7 +29,7 @@ return [
 
   // Custom version component to use CDN when available
   'file::version' => function (Kirby $kirby, $file, array $options = []) {
-    $key = $file->content()->get('s3_key')->value();
+    $key = Meta::get($file, 's3_key');
     if (!$key) {
       return $kirby->nativeComponent('file::version')($kirby, $file, $options);
     }

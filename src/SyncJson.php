@@ -46,7 +46,7 @@ class SyncJson
             return;
         }
 
-        $key = $fresh->content()->get('s3_key')->value();
+        $key = Meta::get($fresh, 's3_key');
         if (!$key) {
             // the upload failed, so there's nothing on the CDN to fetch
             Log::info('json skipped: no s3_key', Log::file($file));
@@ -56,7 +56,7 @@ class SyncJson
         $json = static::fetchCdnJson($key);
         if (!$json) return;
 
-        $fresh->update(['s3_json' => $json]);
+        Meta::set($fresh, ['s3_json' => $json]);
         Log::info('s3_json saved', Log::file($file, ['key' => $key, 's3_json' => $json]));
     }
 }

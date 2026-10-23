@@ -36,7 +36,7 @@ class Restorer
                 $current++;
                 $tag = "[{$current}/{$total}] ";
                 $id  = $file->id();
-                $key = $file->content()->get('s3_key')->value();
+                $key = Meta::get($file, 's3_key');
 
                 try {
                     if (!$key) {
@@ -105,7 +105,7 @@ class Restorer
         $file->unpublish(true);
 
         // 5. Clear S3 metadata (after the local file is safe)
-        $file->update([
+        Meta::set($file, [
             's3_key'    => '',
             's3_json'   => '',
             's3_width'  => '',

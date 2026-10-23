@@ -157,6 +157,10 @@ The fields in the group are:
 
 ---
 
+## Multi-language sites
+
+The S3 state (`s3_key`, `s3_width`, `s3_height`, `s3_json`) belongs to the physical file, so it is always stored in and read from the **default language**, regardless of the language the Panel or CLI is using. The `s3meta` blueprint fields are marked `translate: false`. `--page` and the REST API resolve pages by their id (the default-language id), not by a translated URI.
+
 ## REST API
 
 A route is registered for programmatic uploads (e.g. from a custom Panel UI):

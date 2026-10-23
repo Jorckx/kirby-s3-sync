@@ -6,6 +6,7 @@ use Joredierckx\KirbyS3Sync\DeferSync;
 use Joredierckx\KirbyS3Sync\Client;
 use Joredierckx\KirbyS3Sync\Env;
 use Joredierckx\KirbyS3Sync\Log;
+use Joredierckx\KirbyS3Sync\Meta;
 
 // Shared by file.create:after and file.replace:after
 $sync = function ($file, string $event): void {
@@ -49,7 +50,7 @@ return [
 
     'file.delete:before' => function ($file) {
         if (!option('s3.active')) return;
-        $key = $file->content()->get('s3_key')->value();
+        $key = Meta::get($file, 's3_key');
 
         if (!$key) {
             Log::info('delete:before no s3_key, nothing to delete', Log::file($file));
