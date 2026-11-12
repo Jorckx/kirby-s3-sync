@@ -45,7 +45,7 @@ class SyncJson
         }
 
         // Reload the file: the $file the hook received still has the old content (no s3_key, width or height)
-        $fresh = $file->page()?->file($file->filename());
+        $fresh = $file->parent()?->file($file->filename());
         if (!$fresh) {
             Log::info('json skipped: file not found on reload', Log::file($file));
             return;

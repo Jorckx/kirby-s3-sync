@@ -14,7 +14,7 @@ use Kirby\Cms\Pages;
  */
 class Restorer
 {
-    public static function run(Pages $pages, bool $dryRun, bool $deleteRemote = false, ?callable $out = null): array
+    public static function run(Pages $pages, bool $dryRun, bool $deleteRemote = false, ?callable $out = null, bool $includeSite = false): array
     {
         @set_time_limit(0);
         ignore_user_abort(true);
@@ -26,13 +26,13 @@ class Restorer
             if ($out) $out($line);
         };
 
-        $total   = Migrator::countFiles($pages);
+        $total   = Migrator::countFiles($pages, $includeSite);
         $current = 0;
         $client  = $dryRun ? null : Client::make();
         $bucket  = option('s3.bucket');
 
-        foreach ($pages as $page) {
-            foreach ($page->files() as $file) {
+        {
+            foreach (Migrator::files($pages, $includeSite) as $file) {
                 $current++;
                 $tag = "[{$current}/{$total}] ";
                 $id  = $file->id();

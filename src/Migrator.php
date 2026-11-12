@@ -13,7 +13,7 @@ use Kirby\Cms\Pages;
  */
 class Migrator
 {
-    public static function run(Pages $pages, bool $dryRun, ?callable $out = null): array
+    public static function run(Pages $pages, bool $dryRun, ?callable $out = null, bool $includeSite = false): array
     {
         @set_time_limit(0);
         ignore_user_abort(true);
@@ -28,10 +28,10 @@ class Migrator
 
         $say($dryRun ? 'DRY RUN — nothing will be changed' : 'LIVE — uploading/moving files in S3');
 
-        $total   = static::countFiles($pages);
+        $total   = static::countFiles($pages, $includeSite);
         $current = 0;
-        foreach ($pages as $page) {
-            foreach ($page->files() as $file) {
+        {
+            foreach (static::files($pages, $includeSite) as $file) {
                 $current++;
                 $tag         = "[{$current}/{$total}] ";
                 $id          = $file->id();
@@ -105,13 +105,22 @@ class Migrator
         return $result;
     }
 
-    public static function countFiles(Pages $pages): int
+    /** All files of the given pages, plus the site's own files when $includeSite */
+    public static function files(Pages $pages, bool $includeSite = false): array
     {
-        $n = 0;
+        $files = [];
         foreach ($pages as $page) {
-            $n += $page->files()->count();
+            foreach ($page->files() as $file) $files[] = $file;
         }
-        return $n;
+        if ($includeSite) {
+            foreach (site()->files() as $file) $files[] = $file;
+        }
+        return $files;
+    }
+
+    public static function countFiles(Pages $pages, bool $includeSite = false): int
+    {
+        return count(static::files($pages, $includeSite));
     }
 
     protected static function move($file, string $from, string $to, callable $say): void

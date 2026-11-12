@@ -77,9 +77,16 @@ class Uploader
         ]));
     }
 
+    /** Page id for page files, '_site' for site files */
+    public static function parentId($file): string
+    {
+        $parent = $file->parent();
+        return $parent instanceof \Kirby\Cms\Page ? $parent->id() : '_site';
+    }
+
     public static function key($file): string
     {
-        return option('s3.sitename') . '/' . $file->page()->id() . '/assets/' . $file->type() . 's/' . $file->filename();
+        return option('s3.sitename') . '/' . static::parentId($file) . '/assets/' . $file->type() . 's/' . $file->filename();
     }
 
 }

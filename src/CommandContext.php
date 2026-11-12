@@ -16,6 +16,7 @@ class CommandContext
         public readonly Pages $pages,
         public readonly string $scope,
         public readonly bool $fromPanel = false,
+        public readonly bool $includeSite = false,
     ) {}
 
     /**
@@ -61,7 +62,7 @@ class CommandContext
             return new static($cli, new Pages([$page]), "single page → {$page->id()}", $fromPanel);
         }
 
-        return new static($cli, $kirby->site()->index(), 'ALL pages', $fromPanel);
+        return new static($cli, $kirby->site()->index(), 'ALL pages + site files', $fromPanel, true);
     }
 
     /** CLI output plus the Janitor response (no-op in the terminal) */

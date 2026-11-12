@@ -30,7 +30,7 @@ class Log
     {
         return [
             'file' => $file->filename(),
-            'page' => $file->page() ? $file->page()->id() : 'unknown',
+            'page' => Uploader::parentId($file),
         ] + $extra;
     }
 

@@ -39,7 +39,7 @@ return [
                 '--- About to migrate ---',
                 "Scope:  {$ctx->scope}",
                 'Pages:  ' . $ctx->pages->count(),
-                'Files:  ' . Migrator::countFiles($ctx->pages),
+                'Files:  ' . Migrator::countFiles($ctx->pages, $ctx->includeSite),
                 'Mode:   ' . ($dryRun
                     ? 'DRY RUN (no changes)' . ($forcedDryRun && !$cli->arg('dry-run') ? ' — forced on localhost' : '')
                     : 'LIVE (will upload/move/delete in S3)'),
@@ -50,7 +50,7 @@ return [
 
             if (!$dryRun && !$ctx->confirmed()) return;
 
-            $result = Migrator::run($ctx->pages, $dryRun, fn (string $l) => $cli->out($l));
+            $result = Migrator::run($ctx->pages, $dryRun, fn (string $l) => $cli->out($l), $ctx->includeSite);
             $ctx->done($result, $overview);
         },
     ],
@@ -88,7 +88,7 @@ return [
                 '--- About to restore from S3 ---',
                 "Scope:  {$ctx->scope}",
                 'Pages:  ' . $ctx->pages->count(),
-                'Files:  ' . Migrator::countFiles($ctx->pages),
+                'Files:  ' . Migrator::countFiles($ctx->pages, $ctx->includeSite),
                 'Mode:   ' . ($dryRun ? 'DRY RUN (no changes)' : 'LIVE (will download and overwrite placeholders)'),
                 'Remote: ' . ($deleteRemote ? 'objects will be DELETED from S3' : 'objects stay on S3'),
                 '',
@@ -96,7 +96,7 @@ return [
 
             if (!$dryRun && !$ctx->confirmed()) return;
 
-            $result = Restorer::run($ctx->pages, $dryRun, $deleteRemote, fn (string $l) => $cli->out($l));
+            $result = Restorer::run($ctx->pages, $dryRun, $deleteRemote, fn (string $l) => $cli->out($l), $ctx->includeSite);
             $ctx->done($result, $overview);
         },
     ],

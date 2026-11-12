@@ -14,7 +14,7 @@ return [
                 }
 
                 $pageId = str_replace('+', '/', $pageId);
-                $page   = kirby()->page($pageId);
+                $page   = $pageId === '_site' ? site() : kirby()->page($pageId);
                 $file   = $page ? $page->file($filename) : null;
 
                 if (!$file) {
